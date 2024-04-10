@@ -4,11 +4,14 @@ Apps that I currently vouch for.
 
 Interactive, crowed participation presentaions
 [https://mentimeter.com](https://www.mentimeter.com/)
-
+##########
+##########
 Next Gen powerpoints
 
 [https://prezi.com](https://prezi.com/)
 
+##########
+##########
 
 Open-source, diagramming tool.
 
@@ -16,16 +19,22 @@ Open-source, diagramming tool.
 
 [https://app.diagrams.net](https://app.diagrams.net/)
 
+##########
+##########
 
 Collaborative mindmaps.
 
 [https://mindmeister.com](https://www.mindmeister.com/)
 
+##########
+##########
 
 Collaborative whiteboarding.
 
 [https://ExcaliDraw.com](https://excalidraw.com/)
 
+##########
+##########
 
 Spreadsheets
 
