@@ -2,10 +2,16 @@
 Apps that are awesomely free, or open-source, or online.
 Apps that I currently vouch for.
 
+##########
+##########
+
 Interactive, crowed participation presentaions
+
 [https://mentimeter.com](https://www.mentimeter.com/)
+
 ##########
 ##########
+
 Next Gen powerpoints
 
 [https://prezi.com](https://prezi.com/)
