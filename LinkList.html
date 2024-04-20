@@ -1,0 +1,498 @@
+<html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkList</title>
+    <style>
+        .content {
+        display: inline-grid;
+        grid-row-gap: 10px;
+        grid-column-gap: 20px;
+        grid-template-columns: 30vw 30vw 30vw;
+        grid-template-areas:
+                "top top ..."
+                "main main main2"
+                "bottom bottom ...";
+        }
+        .dragging{
+            opacity: .5;
+            background-color: rgb(159, 236, 255);
+        }
+
+        .itemz {
+            cursor: move;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid rgb(153, 153, 153);
+        }
+
+        .main {
+            grid-area: main;
+            border: 1px dotted black;
+            display: block;
+            padding: 5px 10px;
+        }
+        .main2 {
+            grid-area: main2;
+        }
+        .top {
+            grid-area: top;
+        }
+        .bottom {
+            grid-area: bottom;
+        }
+        .itemME {
+            display: grid;
+            align-items: center;
+            justify-content: left;
+        }
+        .itemME > textarea {
+            align-items: center;
+            width: 29vw;
+            margin-top: 20px;
+        }
+        textarea {
+            font-family: Tahoma, sans-serif;
+        }
+    </style>
+    <script>
+        function q$(selector){
+            let q = document.querySelector(selector);
+            return q;
+        }
+
+        function txtCopy(txt,itm){
+            // var x = document.getElementById().parentElement.nodeName;
+            // var x = document.getElementById(txt);
+            var copyText = document.getElementById(txt);
+            if (itm=="a"){
+
+            }else {
+                CopyCounter(itm);
+            }
+            /* Select the text field */
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+
+            /* Copy the text inside the text field */
+            navigator.clipboard.writeText(copyText.value);
+        } 
+        function cleanTexts(tex,direction) {
+            if (direction == "in"){
+                const search1 = '|/~|';
+                const replaceWith1 = '|//~|';
+                
+                const search2 = '(/~)';
+                const replaceWith2 = '(//~)';
+                
+                const search3 = '|~|';
+                const replaceWith3 = '|/~|';
+                
+                const search4 = '(~)';
+                const replaceWith4 = '(/~)';
+            }else if (direction == "out"){
+                const search1 = '|/~|';
+                const replaceWith1 = '|~|';
+
+                const search2 = '(/~)';
+                const replaceWith2 = '(~)';
+                
+                const search3 = '|//~|';
+                const replaceWith3 = '|/~|';
+                
+                const search4 = '(//~)';
+                const replaceWith4 = '(/~)';
+            }else {
+                alert("fun.cleanTexts doesn't have a direction.");
+                tex = "error";
+                return tex;
+            }
+            try {
+                tex = tex.replaceAll(search1 , replaceWith1);
+            }catch (err){
+                tex = tex;
+            }
+            try{
+                tex = tex.replaceAll(search2 , replaceWith2);
+            }catch (err){
+                tex = tex;
+            }
+            try{
+                tex = tex.replaceAll(search3 , replaceWith3);
+            }catch (err) {
+                tex = tex;
+            }
+            try {
+                tex = tex.replaceAll(search4 , replaceWith4);
+            }catch (err) {
+                tex = tex;
+            }
+            return tex;
+        }
+
+        function savepage() {
+            // saveDocument();
+        }
+
+        function encrypt(string) {
+            string = unescape(encodeURIComponent(string));
+            var newString = '',
+                char, nextChar, combinedCharCode;
+            for (var i = 0; i < string.length; i += 2) {
+                char = string.charCodeAt(i);
+
+                if ((i + 1) < string.length) {
+                    nextChar = string.charCodeAt(i + 1) - 31;
+                    combinedCharCode = char + "" + nextChar.toLocaleString('en', {
+                        minimumIntegerDigits: 2
+                    });
+                    newString += String.fromCharCode(parseInt(combinedCharCode, 10));
+                } else {
+                    newString += string.charAt(i);
+                }
+            }
+            return newString.split("").reduce((hex,c)=>hex+=c.charCodeAt(0).toString(16).padStart(4,"0"),"");
+        }
+
+        function decrypt(string) {
+
+            var newString = '',
+            char, codeStr, firstCharCode, lastCharCode;
+            string = string.match(/.{1,4}/g).reduce((acc,char)=>acc+String.fromCharCode(parseInt(char, 16)),"");
+            for (var i = 0; i < string.length; i++) {
+            char = string.charCodeAt(i);
+            if (char > 132) {
+                codeStr = char.toString(10);
+
+                firstCharCode = parseInt(codeStr.substring(0, codeStr.length - 2), 10);
+
+                lastCharCode = parseInt(codeStr.substring(codeStr.length - 2, codeStr.length), 10) + 31;
+
+                newString += String.fromCharCode(firstCharCode) + String.fromCharCode(lastCharCode);
+            } else {
+                newString += string.charAt(i);
+            }
+            }
+            return newString;
+        }
+
+        function HumanDate(uni) {
+            uni = uni.toString();
+            uni = uni.slice(0, -3);
+            uni = parseInt(uni);
+
+            const milliseconds = uni * 1000; // 1575909015000
+            const dateObject = new Date(milliseconds);
+            const humanDateFormat = dateObject.toLocaleString(); //2019-12-9 10:30:15
+            return humanDateFormat;
+        }
+
+        function Exportte() {
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                var txtAreaCount = document.querySelectorAll("textarea").length;
+                var nTxt = document.getElementsByTagName("textarea");
+                var nTcount = document.querySelectorAll(".couClass");
+                var SaveTxt = dateNowz+"(~)"; let cou;
+                for (var i=0; i < txtAreaCount; i++){
+                    // console.log("i is "+i);
+                    try {
+                        cou = nTcount[i].textContent;
+                        cou = cou.toString();
+                    }
+                    catch (err){
+                        cou = undefined;
+                    }
+                    if (cou != undefined){
+                        SaveTxt += cleanTexts(nTxt[i].value,'in') + "|~|" + cleanTexts(nTcount[i].textContent, 'in') + "(~)";
+                    }else {
+                        SaveTxt += cleanTexts(nTxt[i].value, 'in') + "|~|null(~)";
+                    }
+                }
+                var Tencrypted = encrypt(SaveTxt); 
+
+                console.log(Tencrypted);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tencrypted], { type: 'text/plain' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName;
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
+        }
+        function Exportth () {
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                var txtAreaCount = document.querySelectorAll("textarea").length;
+                var nTxt = document.getElementsByTagName("textarea");
+                var nTcount = document.querySelectorAll(".couClass");
+                var SaveTxt = ""; let cou;
+                var SaveTxtTop = "";
+                for (var i=0; i < txtAreaCount; i++){
+                    // console.log("i is "+i);
+                    try {
+                        cou = nTcount[i].textContent;
+                        cou = cou.toString();
+                    }
+                    catch (err){
+                        cou = undefined;
+                    }
+                    if (cou != undefined){
+                        SaveTxt += nTxt[i].value + " : " + nTcount[i].textContent + " ;\n\n";
+                    }else {
+                        SaveTxtTop += nTxt[i].value + "\n";
+                    }
+                }
+                var Tencrypted = Hdf +"\n\n"+ SaveTxtTop +"\n\n"+ SaveTxt; 
+
+                // console.log(Tencrypted);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tencrypted], { type: 'text/plain' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName;
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
+        
+        }
+
+        function startImport(){
+            document.getElementById('ipo').click();
+        }
+        function Importte(event) {
+            var selectedFile = event.target.files[0];
+            var reader = new FileReader();
+            var RetTxt, Tdecrypted; 
+            var result = document.getElementById("result");
+
+            reader.onload = function(event) {
+                RetTxt = event.target.result;
+                Tdecrypted = decrypt(RetTxt);
+                loadImport(Tdecrypted);
+            };
+            reader.readAsText(selectedFile)
+        }
+        
+        function loadImport(savedInfo) {
+            console.log(savedInfo);
+            var items = savedInfo.split("(~)");
+            for (var i=0; i < items.length; i++){
+                if (i==0) {
+
+                }
+            }
+        }
+
+        function removeMe(nod){
+            document.getElementById(nod).remove();
+        }
+
+        function itemTemplate (num){
+            if (num==null){num = 0;}
+            return "<div>"+
+                        "<div class='itemz' id='item"+num+"' draggable='true'>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+                            "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
+                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
+                            "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
+                        "</div>"+
+                        "<div style='display:block' class='mainBot'></div>"+
+                    "</div>";
+        }
+        function itemTemplateS (num){
+            if (num==null){num = 0;}
+            return ""+
+                        "<div class='itemz' id='item"+num+"' draggable='true'>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+                            "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
+                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
+                            "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
+                        "</div>"+
+                        // "<div style='display:block' class='mainBot'></div>"+
+                    "";
+        }
+
+        function addMore(){
+            return "<button onclick='appendItem()' >+</button>";
+        }
+
+        function appendItem(){
+            var izemCount = document.querySelectorAll(".itemz").length;
+            // var izemCount = document.getElementsByClassName("itemz").length;
+            var ic = 1; var io = 0;
+            for (var i=0; i < izemCount; i++){
+                document.querySelector("div.itemz:nth-child("+ic+")").id = "item"+io;
+                document.querySelector("div.itemz:nth-child("+ic+") textarea").id = "inItem"+io;
+                document.querySelector("div.itemz:nth-child("+ic+") .couClass").id = "item"+io+"count";
+                ic++;
+                io++;
+            }
+                q$(".mainBot").insertAdjacentHTML('beforebegin',itemTemplateS(izemCount++));
+                // nowDrag();
+        }
+
+        var load = 0;
+
+        /**Now Drag to allow for dragging listed item*
+            function nowDrag(){
+            var draggables = Array.from(document.getElementsByClassName("itemz"));
+            var containers = document.querySelectorAll(".main");
+
+            draggables.forEach(draggableItem =>{
+                draggableItem.addEventListener('dragstart', () =>{
+                    draggableItem.classList.add("dragging");
+                    // draggableItem.id="dragging";
+                })
+                draggableItem.addEventListener('dragend', () =>{
+                    draggableItem.classList.remove("dragging");
+                    // draggableItem.id = "";
+
+                })
+            })
+
+            containers.forEach(container => {
+                container.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    var afterElement = getDragAfterElement(container, e.clientY);
+                    var draggable = document.querySelector('.dragging')
+                    if (afterElement == null){
+                        container.appendChild(draggable);
+                    } else {
+                        container.insertBefore(draggable, afterElement);
+                    }
+                })
+            })
+
+            var draggable =  document.querySelector("#dragging");
+            var closestt = draggable.closest(".itemz");
+
+            function getDragAfterElement(container , y){
+                var draggableElements = [...container.querySelectorAll('.itemz:not(#dragging)')]
+
+
+                draggableElements.reduce((closestt, child) => {
+                    var box = child.getBoundingClientRect();
+                    console.log(box);
+                    var offset = y - box.top - box.height / 2;
+                    if (offset < 0 &&  offset > closestt.offset){
+                        var bba = { offset: offset, element: child};
+                        // console.log("bba == "+bba);
+                        return bba;
+                    } else {
+                        // console.log("here is closest: "+closest);
+                        return closestt;
+                    }
+                }, { offset: Number.NEGATIVE_INIFINITY } ).element;
+                return draggableElements;
+        }
+            
+            console.log("nowDrag ran");
+        }
+
+        /***/
+
+        function CopyCounter(mine) {
+            var oldCount = document.querySelector("#"+mine+"count");
+            oldCount = parseInt(oldCount.textContent);
+            var noe = document.querySelector("#"+mine+"count");
+            noe.textContent = oldCount+1;
+            // q$(mine+"count").insertAdjacentHTML('beforebegin',itemTemplate(itemzCounted++));
+            
+        }
+        
+        // Without jQuery
+        // Define a convenience method and use it
+        var ready = (callback) => {
+        if (document.readyState != "loading") callback();
+        else document.addEventListener("DOMContentLoaded", callback);
+        }
+
+        ready(() => { 
+        /* Do things after DOM has fully loaded */
+        if (load == 0){
+            q$(".main").innerHTML = itemTemplate();
+            q$(".main").insertAdjacentHTML('afterbegin',addMore());
+            q$(".mainBot").insertAdjacentHTML('beforeend',addMore());
+            // nowDrag();
+        }
+        });
+        
+    </script>
+</head>
+<body style="">
+    <div class="content">
+        <div class="top" style="display: flex; justify-content: center;">
+            <a href="javascript:window.location.href=window.location.href">New</a>* Version 1.01 *<a onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">Download</a>
+        </div>
+        <div class="main"><button onclick="appendItem()">+</button><div><div class="itemz" id="item0" draggable="true"><input onclick="txtCopy(this.nextElementSibling.id,this.parentNode.id)" type="button" value="Copy" style=""><textarea id="inItem0" style="width: 90%; min-width: 75%; min-height: 15px; margin: 5px" rows="3" maxlength="99990"></textarea><button onclick="removeMe(this.parentNode.id)">X</button><div id="item0count" class="couClass" style="margin-left: 5px">0</div></div><div style="display:block" class="mainBot"><button onclick="appendItem()">+</button></div></div></div>
+        <div class="main2">
+
+            <div style="display: flex; justify-content: center;">
+                <h2>Top 5</h2>
+            </div>
+
+            <div class="itemME" id="itemME" draggable="false">
+                <textarea id="iItem1" maxlength="99990"></textarea>
+                <input onclick="txtCopy(q$(&quot;#iItem1&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
+                <textarea id="iItem2" maxlength="99990"></textarea>
+                <input onclick="txtCopy(q$(&quot;#iItem2&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
+                <textarea id="iItem3" maxlength="99990"></textarea>
+                <input onclick="txtCopy(q$(&quot;#iItem3&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
+                <textarea id="iItem4" maxlength="99990"></textarea>
+                <input onclick="txtCopy(q$(&quot;#iItem4&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
+                <textarea id="iItem5" maxlength="99990"></textarea>
+                <input onclick="txtCopy(q$(&quot;#iItem5&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
+                <!-- <button onclick='removeMe(this.parentNode.id)'>X</button> -->
+                <div style="margin-top: 30px">
+                    <button onclick="Exportth()" style="width: 45%;">Export</button>
+
+                    <input id="ipo" style="display: none;" type="file" value="Import" onchange="Importte(event)">
+                    <!-- <button onclick="startImport()" style="width: 45%; float: right">Import</button> -->
+                    <button onclick="alert('feature not ready yet')" style="width: 45%; float: right">Import</button>
+
+                </div>
+            </div>
+        </div>
+        <div class="bottom" style="display: flex; justify-content: center;">Created by: Aquil Roberts <br>
+            <div>
+                <h3>Features to come:</h3>
+                - reordering of list items<br>
+                - adding tab-pages<br>
+                - encrypted export &amp; Import<br>
+                - excel export<br>
+                - auto assign top 5 side list<br>
+            </div>
+        </div>
+    </div>
+
+</body></html>
