@@ -30,7 +30,13 @@ Open-source, diagramming tool.
 
 Collaborative mindmaps.
 
+[https://deepnotes.app/](https://deepnotes.app) opensource
+
 [https://mindmeister.com](https://www.mindmeister.com/)
+
+[https://miro.com](https://miro.com)
+
+[https://whimsical.com/](https://whimsical.com/)
 
 ##########
 ##########
