@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     git \
     sudo \
+    nano \
     && rm -rf /var/lib/apt/lists/*
 
 # ----------------------------
