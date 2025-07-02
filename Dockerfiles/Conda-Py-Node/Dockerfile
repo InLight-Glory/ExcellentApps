@@ -1,20 +1,34 @@
-# Start from an official Ubuntu base image
+# Base image
 FROM ubuntu:22.04
 
-# Avoid prompts during package installation
+# Disable prompts during package install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Update and install essential packages
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
-    gnupg \
-    build-essential \
     ca-certificates \
-    software-properties-common \
+    build-essential \
+    zlib1g-dev \
+    libncurses5-dev \
+    libgdbm-dev \
+    libnss3-dev \
+    libssl-dev \
+    libreadline-dev \
+    libffi-dev \
+    llvm \
+    tk-dev \
+    libbz2-dev \
+    libsqlite3-dev \
+    xz-utils \
+    git \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Miniconda (lightweight version of Anaconda)
+# ----------------------------
+# Install Miniconda
+# ----------------------------
 ENV CONDA_DIR=/opt/conda
 ENV PATH=$CONDA_DIR/bin:$PATH
 
@@ -23,17 +37,29 @@ RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -
     rm miniconda.sh && \
     conda clean -afy
 
-# Install Python via conda (optional if you want a specific version)
+# Install a specific Python version (optional)
 RUN conda install -y python=3.11 && conda clean -afy
 
-# Install Node.js (LTS version)
-RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
-    apt-get install -y nodejs
+# ----------------------------
+# Install NVM & Node.js (LTS)
+# ----------------------------
+ENV NVM_DIR=/root/.nvm
 
-# Verify installs (optional)
-RUN python --version && node --version && npm --version && conda --version
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm install --lts && \
+    nvm use --lts && \
+    nvm alias default node && \
+    npm install -g npm
 
+# Add NVM to shell startup scripts
+RUN echo "export NVM_DIR=\"$NVM_DIR\"" >> /root/.bashrc && \
+    echo "[ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\"" >> /root/.bashrc && \
+    echo "nvm use default &>/dev/null" >> /root/.bashrc
+
+# ----------------------------
 # Set working directory
+# ----------------------------
 WORKDIR /workspace
 
 # Default command
