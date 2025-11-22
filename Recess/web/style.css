@@ -52,3 +52,20 @@ nav button { margin-left:8px; padding:6px 10px; border-radius:4px; border:none; 
 .post video, .post img { max-width:100%; height:auto; display:block; margin-bottom:8px; }
 .actions { display:flex; gap:8px; }
 .admin-actions button { margin-right:6px; }
+
+/* Landing / Entry overlay */
+.entry-overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(4,11,32,0.6),rgba(4,11,32,0.4));display:flex;align-items:center;justify-content:center;z-index:9999}
+.entry-panel{background:var(--card);padding:28px;border-radius:14px;max-width:720px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(2,6,23,0.45)}
+.entry-panel .entry-brand h1{margin:0;font-size:2rem}
+.entry-panel .tagline{color:var(--muted);margin-top:6px}
+.entry-ctas{margin-top:18px;display:flex;flex-direction:column;gap:10px;align-items:center}
+.entry-ctas .btn{min-width:220px}
+.entry-ctas .btn.primary{padding:12px 18px}
+.entry-links{margin-top:8px;color:var(--muted);font-size:0.95rem}
+.entry-links a{color:var(--primary);text-decoration:none}
+.entry-note{margin-top:14px;font-size:0.85rem}
+
+@media (min-width:720px){
+  .entry-ctas{flex-direction:row}
+  .entry-links{margin-top:0}
+}

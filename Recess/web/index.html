@@ -3,76 +3,120 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Recess — MVP Scaffold</title>
-    <!doctype html>
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <title>Recess — MVP</title>
-        <link rel="stylesheet" href="style.css">
-      </head>
-      <body>
-        <header class="site-header">
-          <div class="brand">
-            <img src="" alt="" class="logo" />
-            <h1>Recess</h1>
-            <p class="tag">Short, safe, science projects for kids</p>
+    <title>Recess — MVP</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div style="display:flex;flex-direction:column">
+          <h1 style="margin:0">Recess</h1>
+          <p class="tag">Short, safe, science projects for kids</p>
+        </div>
+      </div>
+      <nav class="main-nav">
+        <button id="btn-feed" class="nav-btn">Feed</button>
+        <button id="btn-upload" class="nav-btn">Upload</button>
+        <button id="btn-user" class="nav-btn">User</button>
+        <button id="btn-parent" class="nav-btn">Parent</button>
+        <button id="btn-admin" class="nav-btn">Admin</button>
+      </nav>
+      <div id="profileWrap" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+        <input id="profilePicInput" type="file" accept="image/*" style="display:none" />
+        <div id="profilePic" title="Upload profile picture" style="width:44px;height:44px;border-radius:999px;background:#fff;border:2px solid #eef3ff;display:flex;align-items:center;justify-content:center;cursor:pointer"> 
+          <span style="color:var(--muted);font-size:0.9rem">You</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section id="feed" class="view panel">
+        <div class="panel-header"><h2>Feed</h2><div id="feedStatus" class="muted"></div></div>
+        <div id="feedList" class="cards"></div>
+      </section>
+
+      <aside class="sidebar">
+        <section id="upload" class="view panel hidden">
+          <div class="panel-header"><h3>Create Post</h3></div>
+          <form id="uploadForm" class="form">
+            <label>Title<br><input id="uploadTitle" name="title" required /></label>
+            <label>Child email (to attribute post)<br><input id="childEmail" name="childEmail" type="email" placeholder="child@school.edu" /></label>
+            <label>Category<br><input id="uploadCategory" name="category" /></label>
+            <label>Media URL (YouTube or image) — optional<br><input id="uploadMediaUrl" name="mediaUrl" type="text" placeholder="https://www.youtube.com/watch?v=..." /></label>
+            <label>Or upload media file (image or short video)<br><input id="uploadMediaFile" type="file" name="media" accept="image/*,video/*" /></label>
+            <div id="uploadPreview" style="margin-top:8px"></div>
+            <div class="form-actions"><button type="submit" class="btn primary">Upload</button> <button type="button" id="uploadReset" class="btn">Reset</button></div>
+          </form>
+          <div id="uploadResult" class="muted small"></div>
+        </section>
+
+        <section id="parent" class="view panel hidden">
+          <div class="panel-header"><h3>Parent — Pending</h3></div>
+          <div id="parentLogin">
+            <form id="parentLoginForm" class="form">
+              <label>Parent email<br><input id="parentEmail" name="email" type="email" required /></label>
+              <label>Password<br><input id="parentPassword" name="password" type="password" required /></label>
+              <div class="form-actions"><button type="submit" class="btn primary">Log in</button> <button type="button" id="parentLogout" class="btn">Clear token</button></div>
+            </form>
+            <div id="parentLoginMsg" class="muted small" style="margin-top:8px;"></div>
           </div>
-          <nav class="main-nav">
-            <button id="btn-feed" class="nav-btn">Feed</button>
-            <button id="btn-upload" class="nav-btn">Upload</button>
-            <button id="btn-parent" class="nav-btn">Parent</button>
-            <button id="btn-admin" class="nav-btn">Admin</button>
-          </nav>
-        </header>
+          <div id="parentPendingList" style="margin-top:12px;"></div>
+        </section>
 
-        <main class="layout">
-          <section id="feed" class="view panel">
-            <div class="panel-header"><h2>Feed</h2><div id="feedStatus" class="muted"></div></div>
-            <div id="feedList" class="cards"></div>
-          </section>
-
-          <aside class="sidebar">
-            <section id="upload" class="view panel hidden">
-              <div class="panel-header"><h3>Create Post</h3></div>
-              <form id="uploadForm" class="form">
-                <label>Title<br><input id="uploadTitle" name="title" required /></label>
-                <label>Child email (to attribute post)<br><input id="childEmail" name="childEmail" type="email" placeholder="child@school.edu" /></label>
-                <label>Category<br><input id="uploadCategory" name="category" /></label>
-                <label>Media file (image or short video)<br><input type="file" name="media" accept="image/*,video/*" required /></label>
-                <div class="form-actions"><button type="submit" class="btn primary">Upload</button> <button type="button" id="uploadReset" class="btn">Reset</button></div>
+        <section id="user" class="view panel hidden">
+          <div class="panel-header"><h3>User</h3></div>
+          <div id="userArea">
+            <div id="userLogin">
+              <form id="userLoginForm" class="form">
+                <label>Email<br><input id="userEmail" name="email" type="email" required /></label>
+                <label>Password<br><input id="userPassword" name="password" type="password" required /></label>
+                <div class="form-actions"><button type="submit" class="btn primary">Log in</button> <button type="button" id="userLogout" class="btn">Logout</button></div>
               </form>
-              <div id="uploadResult" class="muted small"></div>
-            </section>
+              <div id="userMsg" class="muted small" style="margin-top:8px"></div>
+            </div>
+            <div id="userInfo" style="margin-top:12px"></div>
+          </div>
+        </section>
 
-            <section id="parent" class="view panel hidden">
-              <div class="panel-header"><h3>Parent — Pending</h3></div>
-              <div id="parentLogin">
-                <form id="parentLoginForm" class="form">
-                  <label>Parent email<br><input id="parentEmail" name="email" type="email" required /></label>
-                  <label>Password<br><input id="parentPassword" name="password" type="password" required /></label>
-                  <div class="form-actions"><button type="submit" class="btn primary">Log in</button> <button type="button" id="parentLogout" class="btn">Clear token</button></div>
-                </form>
-                <div id="parentLoginMsg" class="muted small" style="margin-top:8px;"></div>
-              </div>
-              <div id="parentPendingList" style="margin-top:12px;"></div>
-            </section>
+        <section id="admin" class="view panel hidden">
+          <div class="panel-header"><h3>Admin — Pending</h3></div>
+          <div id="adminLogin">
+            <form id="adminLoginForm" class="form">
+              <label>Admin token<br><input id="adminTokenInput" name="adminToken" type="text" placeholder="admin token" required /></label>
+              <div class="form-actions"><button type="submit" class="btn primary">Login</button> <button type="button" id="adminLogout" class="btn">Clear token</button></div>
+            </form>
+            <div id="adminLoginMsg" class="muted small" style="margin-top:8px;"></div>
+          </div>
+          <div id="pendingList" style="margin-top:12px"></div>
+          <div style="margin-top:10px"><button id="resetDemoBtn" class="btn">Reset demo posts</button></div>
+        </section>
+      </aside>
+    </main>
 
-            <section id="admin" class="view panel hidden">
-              <div class="panel-header"><h3>Admin — Pending</h3></div>
-              <div id="pendingList"></div>
-            </section>
-          </aside>
-        </main>
+    <footer class="site-footer">
+      <small>Recess MVP — local dev only. Change `server/config.json` for seeded credentials.</small>
+    </footer>
 
-        <footer class="site-footer">
-          <small>Recess MVP — local dev only. Change `server/config.json` for seeded credentials.</small>
-        </footer>
+    <!-- Landing / Entry Overlay -->
+    <div id="entryOverlay" class="entry-overlay" aria-hidden="false">
+      <div class="entry-panel">
+        <div class="entry-brand">
+          <h1>Recess</h1>
+          <p class="tagline">A safe place for kids to share short learning videos.</p>
+        </div>
+        <div class="entry-ctas">
+          <button id="enterGuestBtn" class="btn primary">Enter as Guest</button>
+          <button id="enterDemoBtn" class="btn">Try Demo Accounts</button>
+          <div class="entry-links">
+            <a href="#" id="showParentLogin">Parent Login</a>
+            <span> · </span>
+            <a href="#" id="showAdminLogin">Admin Login</a>
+          </div>
+        </div>
+        <div class="entry-note muted">This is a local demo. For testing only.</div>
+      </div>
+    </div>
 
-        <script src="app.js"></script>
-      </body>
-    </html>
     <script src="app.js"></script>
   </body>
 </html>

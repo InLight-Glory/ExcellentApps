@@ -19,6 +19,11 @@ High priority (near-term / beta)
   - Why: avoid prompt() flows and make staff workflows smoother.
   - Next: create admin login form, show escalated queue, add bulk actions.
 
+- [TODO] Server-detected session indicator (small UI polish)
+  - Why: show when the server recognizes the user as logged-in (cookie-based session). This avoids confusion when the same account is used on multiple devices and surface server-side state.
+  - Priority: low-medium
+  - Next: add a small badge in the top-right that queries a lightweight `/api/session` endpoint (or reads a small server-echo response) and displays "Signed in (server)" or nothing.
+
 Medium priority (post-beta)
 
 - [TODO] Authentication & accounts

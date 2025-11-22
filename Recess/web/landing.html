@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Recess — Welcome</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .hero{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 18px;min-height:70vh}
+      .hero h1{font-size:2.4rem;margin:0}
+      .hero p{color:var(--muted);margin-top:8px}
+      .hero .ctas{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
+      .logo-spot{width:84px;height:84px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--primary));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;margin-bottom:14px}
+      .small-muted{color:var(--muted);font-size:0.9rem;margin-top:12px}
+    </style>
+  </head>
+  <body>
+    <main style="max-width:980px;margin:28px auto;text-align:center">
+      <div class="brand" style="display:flex;flex-direction:column;align-items:center">
+        <div class="logo-spot">Re</div>
+        <h1 style="margin-top:8px">Welcome to Recess</h1>
+        <p class="tagline">A safe place for kids to share short learning videos and projects.</p>
+      </div>
+
+      <section class="hero">
+        <div style="max-width:760px">
+          <p style="font-size:1.05rem;margin:0">Recess is a demo prototype for sharing short science and learning videos. Parents approve posts from their children, and staff can moderate escalations. This page is a landing entry to the app — no accounts required for a quick look.</p>
+
+          <div class="ctas">
+            <!-- Point to the actual app file so server redirect doesn't loop guests back here -->
+            <a class="btn primary" href="/index.html">Enter the App</a>
+            <a class="btn" href="/index.html#parent">Parent Login</a>
+            <a class="btn" href="/index.html#admin">Admin Login</a>
+          </div>
+
+          <div style="margin-top:14px">
+            <div style="font-weight:600;margin-bottom:6px">Quick demo sign-in</div>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <button id="quickKid5" class="btn">Sign in as Sam (kid5@local)</button>
+              <button id="quickTeen14" class="btn">Sign in as Alex (teen14@local)</button>
+            </div>
+            <div class="small-muted">Demo password (if needed): <strong>demo123</strong></div>
+          </div>
+
+          <div class="small-muted">Tip: use the Parent or Admin panels inside the app to moderate posts.</div>
+        </div>
+      </section>
+
+      <section style="margin-top:18px;text-align:left">
+        <h3>About this demo</h3>
+        <ul>
+          <li>Uses YouTube embeds to demo video posts (no hosting required).</li>
+          <li>Admin token and demo accounts are stored in `server/config.json` for local testing.</li>
+          <li>Parent login is accessible from the Parent panel inside the app.</li>
+        </ul>
+      </section>
+
+      <footer style="margin-top:28px;text-align:center;color:var(--muted)">&copy; Recess — Local demo. Not for production use.</footer>
+    </main>
+  </body>
+</html>

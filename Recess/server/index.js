@@ -41,8 +41,12 @@ try {
 
 // simple admin middleware
 function requireAdmin(req, res, next) {
-  const token = (req.headers['x-admin-token'] || req.headers['authorization'] || '').toString();
-  if (!token || token !== CONFIG.adminToken) return res.status(401).json({ error: 'admin token required' });
+  let token = (req.headers['x-admin-token'] || req.headers['authorization'] || '').toString();
+  if (!token) {
+    const cookies = parseCookies(req.headers.cookie || '');
+    if (cookies.recess_admin_token) token = cookies.recess_admin_token;
+  }
+  if (!token || (token !== CONFIG.adminToken && token !== ('Bearer ' + CONFIG.adminToken))) return res.status(401).json({ error: 'admin token required' });
   next();
 }
 
@@ -54,6 +58,21 @@ function requireParent(req, res, next) {
     const token = auth.toString().slice(7);
     try {
       const payload = jwt.verify(token, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      if (payload && payload.role === 'parent') {
+        req.parentId = payload.id;
+        req.parentEmail = payload.email;
+        return next();
+      }
+      return res.status(401).json({ error: 'invalid parent token' });
+    } catch (e) {
+      return res.status(401).json({ error: 'invalid token' });
+    }
+  }
+  // Fallback: check cookie for recess_parent_jwt
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies.recess_parent_jwt) {
+    try {
+      const payload = jwt.verify(cookies.recess_parent_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
       if (payload && payload.role === 'parent') {
         req.parentId = payload.id;
         req.parentEmail = payload.email;
@@ -188,10 +207,112 @@ db.serialize(() => {
       });
     });
   }, 300);
+
+  // Seed two demo accounts: a young child (5yo) and a teen (14yo) for demo purposes
+  db.get("SELECT id FROM users WHERE email='kid5@local' LIMIT 1", [], (err, k5) => {
+    if (err) console.error('DB error checking kid5:', err);
+    if (!k5) {
+      db.run('INSERT INTO users (email, displayName, role, createdAt, parentalConsent, ageRange) VALUES (?, ?, ?, ?, ?, ?)', ['kid5@local', 'Sam (5)', 'user', Date.now(), 0, '5'], (e) => {
+        if (e) console.error('Failed to seed kid5:', e);
+        else console.log('Seeded demo user: kid5@local (5yo)');
+      });
+    }
+  });
+
+  db.get("SELECT id FROM users WHERE email='teen14@local' LIMIT 1", [], (err, t14) => {
+    if (err) console.error('DB error checking teen14:', err);
+    if (!t14) {
+      db.run('INSERT INTO users (email, displayName, role, createdAt, parentalConsent, ageRange) VALUES (?, ?, ?, ?, ?, ?)', ['teen14@local', 'Alex (14)', 'user', Date.now(), 1, '14-15'], (e) => {
+        if (e) console.error('Failed to seed teen14:', e);
+        else console.log('Seeded demo user: teen14@local (14yo)');
+      });
+    }
+  });
+
+  // Seed a few demo posts (only if none exist) to make the UI feel alive on first run
+  setTimeout(() => {
+    db.get('SELECT COUNT(1) as cnt FROM posts', [], (err, row) => {
+      if (err) return console.error('Error checking posts count:', err);
+      if (row && row.cnt > 0) return; // already have posts
+      // find child user id
+      db.get("SELECT id FROM users WHERE email='child@local' LIMIT 1", [], (e, childRow) => {
+        const childId = childRow ? childRow.id : 0;
+        const now = Date.now();
+        const demos = [
+          {
+            title: 'Lemon battery — simple science at home',
+            description: 'Make a small battery using lemons, copper and zinc. Great for a classroom demo!',
+            mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            mediaType: 'youtube',
+            category: 'Science',
+            status: 'approved',
+            createdAt: now - 1000 * 60 * 60 * 24
+          },
+          {
+            title: 'Color-changing milk experiment',
+            description: 'A colorful surface-tension experiment using milk and soap.',
+            mediaUrl: 'https://www.youtube.com/watch?v=QH2-TGUlwu4',
+            mediaType: 'youtube',
+            category: 'Chemistry',
+            status: 'approved',
+            createdAt: now - 1000 * 60 * 60 * 12
+          },
+          {
+            title: 'Paper rocket launch',
+            description: 'Build a small paper rocket and learn about thrust.',
+            mediaUrl: 'https://via.placeholder.com/640x360.png?text=Paper+Rocket',
+            mediaType: 'image',
+            category: 'Engineering',
+            status: 'approved',
+            createdAt: now - 1000 * 60 * 60 * 6
+          }
+        ];
+        const stmt = db.prepare('INSERT INTO posts (userId, title, description, mediaUrl, mediaType, category, tags, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        demos.forEach(d => {
+          stmt.run(childId, d.title, d.description, d.mediaUrl, d.mediaType, d.category, '', d.status, d.createdAt, (ie) => {
+            if (ie) console.error('Failed to insert demo post:', ie);
+          });
+        });
+        stmt.finalize(() => console.log('Seeded demo posts'));
+      });
+    });
+  }, 600);
 });
 
 // Serve uploads
 app.use('/uploads', express.static(UPLOADS_DIR));
+
+// Simple cookie parser for our needs (no extra dependency)
+function parseCookies(cookieHeader) {
+  const obj = {};
+  if (!cookieHeader) return obj;
+  cookieHeader.split(';').forEach(pair => {
+    const idx = pair.indexOf('=');
+    if (idx < 0) return;
+    const key = pair.slice(0, idx).trim();
+    const val = pair.slice(idx + 1).trim();
+    obj[key] = decodeURIComponent(val);
+  });
+  return obj;
+}
+
+function isAuthenticated(req) {
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies.recess_parent_jwt) return true;
+  if (cookies.recess_admin_token) return true;
+  if (cookies.recess_user_jwt) return true;
+  return false;
+}
+
+// Redirect unauthenticated visitors at root to landing page
+app.get('/', (req, res, next) => {
+  try {
+    if (!isAuthenticated(req)) return res.redirect('/landing.html');
+  } catch (e) {
+    // fall through
+  }
+  next();
+});
 
 // Serve frontend static
 app.use('/', express.static(path.join(__dirname, '..', 'web')));
@@ -390,6 +511,32 @@ app.post('/api/moderation/:id/reject', requireAdmin, (req, res) => {
   });
 });
 
+// Admin helper: reset demo posts (clear posts and insert demo set). Protected by admin token.
+app.post('/api/admin/reset-demo', requireAdmin, (req, res) => {
+  db.serialize(() => {
+    db.run('DELETE FROM posts', [], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      // insert demo posts (same as initial seed)
+      db.get("SELECT id FROM users WHERE email='kid5@local' LIMIT 1", [], (err, kidRow) => {
+        const kidId = kidRow ? kidRow.id : 0;
+        const now = Date.now();
+        const demos = [
+          { title: 'Lemon battery — simple science at home', description: 'Make a small battery using lemons, copper and zinc. Great for a classroom demo!', mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', mediaType: 'youtube', category: 'Science', status: 'approved', createdAt: now - 1000 * 60 * 60 * 24 },
+          { title: 'Color-changing milk experiment', description: 'A colorful surface-tension experiment using milk and soap.', mediaUrl: 'https://www.youtube.com/watch?v=QH2-TGUlwu4', mediaType: 'youtube', category: 'Chemistry', status: 'approved', createdAt: now - 1000 * 60 * 60 * 12 },
+          { title: 'Paper rocket launch', description: 'Build a small paper rocket and learn about thrust.', mediaUrl: 'https://via.placeholder.com/640x360.png?text=Paper+Rocket', mediaType: 'image', category: 'Engineering', status: 'approved', createdAt: now - 1000 * 60 * 60 * 6 }
+        ];
+        const stmt = db.prepare('INSERT INTO posts (userId, title, description, mediaUrl, mediaType, category, tags, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        demos.forEach(d => {
+          stmt.run(kidId, d.title, d.description, d.mediaUrl, d.mediaType, d.category, '', d.status, d.createdAt, (ie) => {
+            if (ie) console.error('Failed to insert demo post:', ie);
+          });
+        });
+        stmt.finalize(() => res.json({ reset: true, inserted: demos.length }));
+      });
+    });
+  });
+});
+
 // Helper: expose pending posts for admin UI
 app.get('/api/moderation/pending', requireAdmin, (req, res) => {
   db.all("SELECT * FROM posts WHERE status != 'approved' ORDER BY createdAt DESC", [], (err, rows) => {
@@ -418,8 +565,112 @@ app.post('/api/parents/login', (req, res) => {
     const ok = bcrypt.compareSync(password, hash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
     const token = jwt.sign({ id: user.id, email: user.email, role: 'parent' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    // Set an HttpOnly cookie for server-side session detection (local dev only)
+    try {
+      res.cookie('recess_parent_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 });
+    } catch (e) {
+      // If res.cookie not available for some reason, ignore
+    }
     res.json({ token });
   });
+});
+
+// Demo/user login endpoint — for local demo only.
+// Accepts { email } and issues a user JWT; if the demo account has no passwordHash, set it to 'demo123'.
+app.post('/api/users/demo-login', (req, res) => {
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email required' });
+  db.get('SELECT * FROM users WHERE email = ? AND role = ? LIMIT 1', [email, 'user'], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(404).json({ error: 'user not found' });
+    // If user has no passwordHash, seed it to demo123 for demo convenience
+    if (!user.passwordHash) {
+      const seedHash = bcrypt.hashSync('demo123', 10);
+      db.run('UPDATE users SET passwordHash = ? WHERE id = ?', [seedHash, user.id], (e) => {
+        if (e) console.error('Failed to set demo passwordHash:', e);
+      });
+    }
+    // Sign a JWT for the user
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    try { res.cookie('recess_user_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }); } catch (e) {}
+    // Return token as convenience (client still gets cookie)
+    res.json({ token });
+  });
+});
+
+// Demo/user logout - clear cookie
+app.post('/api/users/logout', (req, res) => {
+  try { res.clearCookie('recess_user_jwt'); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// User login (email + password) - similar to parent login but for role 'user'
+app.post('/api/users/login', (req, res) => {
+  const { email, password } = req.body || {};
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
+  db.get('SELECT * FROM users WHERE email = ? AND role = ? LIMIT 1', [email, 'user'], (err, user) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!user) return res.status(401).json({ error: 'invalid credentials' });
+    const hash = user.passwordHash;
+    if (!hash) return res.status(401).json({ error: 'invalid credentials' });
+    const ok = bcrypt.compareSync(password, hash);
+    if (!ok) return res.status(401).json({ error: 'invalid credentials' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    try { res.cookie('recess_user_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }); } catch (e) {}
+    res.json({ token, id: user.id, email: user.email, displayName: user.displayName });
+  });
+});
+
+// Session endpoint: returns basic session info (role/displayName) if the server recognizes a cookie or auth header
+app.get('/api/session', (req, res) => {
+  // Check admin cookie or header
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies.recess_admin_token && cookies.recess_admin_token === CONFIG.adminToken) {
+    return res.json({ role: 'admin', displayName: 'admin' });
+  }
+  // Check parent JWT cookie
+  if (cookies.recess_parent_jwt) {
+    try {
+      const payload = jwt.verify(cookies.recess_parent_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      return res.json({ role: 'parent', displayName: payload.email || payload.id });
+    } catch (e) {}
+  }
+  // Check user JWT cookie
+  if (cookies.recess_user_jwt) {
+    try {
+      const payload = jwt.verify(cookies.recess_user_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      // fetch displayName from DB
+      db.get('SELECT displayName,email FROM users WHERE id = ? LIMIT 1', [payload.id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'user not found' });
+        return res.json({ role: 'user', displayName: row.displayName || row.email });
+      });
+      return;
+    } catch (e) {}
+  }
+  // Not authenticated
+  res.status(401).json({ authenticated: false });
+});
+
+// Parent logout - clear cookie
+app.post('/api/parents/logout', (req, res) => {
+  try { res.clearCookie('recess_parent_jwt'); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// Admin login endpoint to set an HttpOnly cookie for admin token (local dev)
+app.post('/api/admin/login', (req, res) => {
+  const { token } = req.body || {};
+  if (!token) return res.status(400).json({ error: 'token required' });
+  if (token !== CONFIG.adminToken) return res.status(401).json({ error: 'invalid admin token' });
+  try { res.cookie('recess_admin_token', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }); } catch (e) {}
+  res.json({ ok: true });
+});
+
+// Admin logout - clear cookie
+app.post('/api/admin/logout', (req, res) => {
+  try { res.clearCookie('recess_admin_token'); } catch (e) {}
+  res.json({ ok: true });
 });
 
 const PORT = process.env.PORT || 3000;
