@@ -1,0 +1,11 @@
+{
+  "adminToken": "1234",
+  "jwtSecret": "recess-jwt-secret-CHANGE_ME",
+  "parentPassword": "parentpass",
+  "parentTokens": [
+    {
+      "email": "parent@local",
+      "token": "321"
+    }
+  ]
+}
