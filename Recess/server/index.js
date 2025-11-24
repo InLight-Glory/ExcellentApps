@@ -126,11 +126,17 @@ db.serialize(() => {
     createdAt INTEGER
   )`);
   // Create reports and parent_child tables
+  // Reports table with enhanced fields for staff moderation
   db.run(`CREATE TABLE IF NOT EXISTS reports (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     postId INTEGER,
     reporterId INTEGER,
+    reasonCategory TEXT,
     reason TEXT,
+    status TEXT DEFAULT 'pending',
+    staffNotes TEXT,
+    resolvedBy TEXT,
+    resolvedAt INTEGER,
     createdAt INTEGER
   )`);
 
@@ -149,6 +155,23 @@ db.serialize(() => {
   // Add passwordHash column to users if not present
   db.run("ALTER TABLE users ADD COLUMN passwordHash TEXT", [], (err) => {
     if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add passwordHash column:', err.message);
+  });
+
+  // Add enhanced report columns if not present (backwards compatibility)
+  db.run("ALTER TABLE reports ADD COLUMN reasonCategory TEXT", [], (err) => {
+    if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add reasonCategory column:', err.message);
+  });
+  db.run("ALTER TABLE reports ADD COLUMN status TEXT DEFAULT 'pending'", [], (err) => {
+    if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add status column:', err.message);
+  });
+  db.run("ALTER TABLE reports ADD COLUMN staffNotes TEXT", [], (err) => {
+    if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add staffNotes column:', err.message);
+  });
+  db.run("ALTER TABLE reports ADD COLUMN resolvedBy TEXT", [], (err) => {
+    if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add resolvedBy column:', err.message);
+  });
+  db.run("ALTER TABLE reports ADD COLUMN resolvedAt INTEGER", [], (err) => {
+    if (err && !/duplicate column/i.test(err.message)) console.warn('Could not add resolvedAt column:', err.message);
   });
 
   // Ensure at least one admin user exists (seed)
@@ -381,17 +404,36 @@ app.post('/api/posts/:id/like', (req, res) => {
   });
 });
 
+// Valid report reason categories
+const REPORT_REASON_CATEGORIES = [
+  'inappropriate',    // Inappropriate content for children
+  'suggestive',       // Suggestive or adult-oriented content
+  'inaccurate',       // Inaccurate information
+  'misleading',       // Misleading content
+  'spam',             // Spam or promotional content
+  'harassment',       // Harassment or bullying
+  'dangerous',        // Dangerous activities
+  'copyright',        // Copyright violation
+  'other'             // Other reason (requires description)
+];
+
 // API: report a post (anyone)
 app.post('/api/posts/:id/report', (req, res) => {
   const id = req.params.id;
-  const { reporterId = null, reason = '' } = req.body || {};
+  const { reporterId = null, reasonCategory = 'other', reason = '' } = req.body || {};
+  
+  // Validate reasonCategory
+  const validCategory = REPORT_REASON_CATEGORIES.includes(reasonCategory) ? reasonCategory : 'other';
+  
   const createdAt = Date.now();
-  db.run('INSERT INTO reports (postId, reporterId, reason, createdAt) VALUES (?, ?, ?, ?)', [id, reporterId, reason, createdAt], function (err) {
+  db.run('INSERT INTO reports (postId, reporterId, reasonCategory, reason, status, createdAt) VALUES (?, ?, ?, ?, ?, ?)', 
+    [id, reporterId, validCategory, reason, 'pending', createdAt], function (err) {
     if (err) return res.status(500).json({ error: err.message });
+    const reportId = this.lastID;
     // mark the post as escalated for staff review
     db.run("UPDATE posts SET status='escalated' WHERE id = ?", [id], function (e) {
       if (e) console.error('Failed to mark escalated:', e);
-      res.status(201).json({ reportId: this.lastID, escalated: true });
+      res.status(201).json({ reportId, escalated: true, reasonCategory: validCategory });
     });
   });
 });
@@ -552,6 +594,257 @@ app.get('/api/moderation/escalated', requireAdmin, (req, res) => {
     res.json(rows);
   });
 });
+
+// ========================================
+// Staff Moderation Backend for User-Flagged Posts
+// ========================================
+
+// GET: List all valid report reason categories
+app.get('/api/moderation/report-categories', (req, res) => {
+  res.json(REPORT_REASON_CATEGORIES);
+});
+
+// GET: List all reports with optional filtering
+// Query params: status (pending|reviewed|dismissed|actioned), reasonCategory, postId
+app.get('/api/moderation/reports', requireAdmin, (req, res) => {
+  const { status, reasonCategory, postId } = req.query;
+  
+  let sql = `
+    SELECT r.*, p.title AS postTitle, p.status AS postStatus, p.mediaUrl, p.userId AS postUserId,
+           u.displayName AS reporterName, u.email AS reporterEmail
+    FROM reports r
+    LEFT JOIN posts p ON r.postId = p.id
+    LEFT JOIN users u ON r.reporterId = u.id
+    WHERE 1=1
+  `;
+  const params = [];
+  
+  if (status) {
+    sql += ' AND r.status = ?';
+    params.push(status);
+  }
+  if (reasonCategory) {
+    sql += ' AND r.reasonCategory = ?';
+    params.push(reasonCategory);
+  }
+  if (postId) {
+    sql += ' AND r.postId = ?';
+    params.push(postId);
+  }
+  
+  sql += ' ORDER BY r.createdAt DESC';
+  
+  db.all(sql, params, (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// GET: Get a specific report with full details
+app.get('/api/moderation/reports/:id', requireAdmin, (req, res) => {
+  const reportId = req.params.id;
+  
+  const sql = `
+    SELECT r.*, p.title AS postTitle, p.description AS postDescription, p.status AS postStatus, 
+           p.mediaUrl, p.mediaType, p.userId AS postUserId, p.category AS postCategory,
+           u.displayName AS reporterName, u.email AS reporterEmail,
+           pu.displayName AS postAuthorName, pu.email AS postAuthorEmail
+    FROM reports r
+    LEFT JOIN posts p ON r.postId = p.id
+    LEFT JOIN users u ON r.reporterId = u.id
+    LEFT JOIN users pu ON p.userId = pu.id
+    WHERE r.id = ?
+  `;
+  
+  db.get(sql, [reportId], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: 'Report not found' });
+    res.json(row);
+  });
+});
+
+// GET: Get all reports for a specific post
+app.get('/api/moderation/posts/:postId/reports', requireAdmin, (req, res) => {
+  const postId = req.params.postId;
+  
+  const sql = `
+    SELECT r.*, u.displayName AS reporterName, u.email AS reporterEmail
+    FROM reports r
+    LEFT JOIN users u ON r.reporterId = u.id
+    WHERE r.postId = ?
+    ORDER BY r.createdAt DESC
+  `;
+  
+  db.all(sql, [postId], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
+
+// GET: Get summary statistics for moderation dashboard
+app.get('/api/moderation/stats', requireAdmin, (req, res) => {
+  const stats = {};
+  
+  // Count reports by status
+  db.all(`
+    SELECT status, COUNT(*) as count 
+    FROM reports 
+    GROUP BY status
+  `, [], (err, statusRows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    stats.byStatus = {};
+    statusRows.forEach(r => { stats.byStatus[r.status || 'unknown'] = r.count; });
+    
+    // Count reports by category
+    db.all(`
+      SELECT reasonCategory, COUNT(*) as count 
+      FROM reports 
+      WHERE status = 'pending'
+      GROUP BY reasonCategory
+    `, [], (err2, catRows) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      stats.pendingByCategory = {};
+      catRows.forEach(r => { stats.pendingByCategory[r.reasonCategory || 'other'] = r.count; });
+      
+      // Count escalated posts
+      db.get(`SELECT COUNT(*) as count FROM posts WHERE status = 'escalated'`, [], (err3, escRow) => {
+        if (err3) return res.status(500).json({ error: err3.message });
+        stats.escalatedPosts = escRow ? escRow.count : 0;
+        
+        res.json(stats);
+      });
+    });
+  });
+});
+
+// POST: Dismiss a report (mark as false positive / no action needed)
+app.post('/api/moderation/reports/:id/dismiss', requireAdmin, (req, res) => {
+  const reportId = req.params.id;
+  const { staffNotes = '' } = req.body || {};
+  const resolvedAt = Date.now();
+  
+  db.run(`
+    UPDATE reports 
+    SET status = 'dismissed', staffNotes = ?, resolvedBy = 'admin', resolvedAt = ?
+    WHERE id = ?
+  `, [staffNotes, resolvedAt, reportId], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Report not found' });
+    
+    // Log the action in moderation table
+    db.run('INSERT INTO moderation (postId, action, admin, reason, createdAt) VALUES ((SELECT postId FROM reports WHERE id = ?), ?, ?, ?, ?)',
+      [reportId, 'report-dismissed', 'admin', staffNotes, resolvedAt]);
+    
+    res.json({ id: parseInt(reportId), status: 'dismissed' });
+  });
+});
+
+// POST: Mark a report as reviewed (acknowledge but keep post)
+app.post('/api/moderation/reports/:id/reviewed', requireAdmin, (req, res) => {
+  const reportId = req.params.id;
+  const { staffNotes = '' } = req.body || {};
+  const resolvedAt = Date.now();
+  
+  db.run(`
+    UPDATE reports 
+    SET status = 'reviewed', staffNotes = ?, resolvedBy = 'admin', resolvedAt = ?
+    WHERE id = ?
+  `, [staffNotes, resolvedAt, reportId], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Report not found' });
+    
+    // Log the action in moderation table
+    db.run('INSERT INTO moderation (postId, action, admin, reason, createdAt) VALUES ((SELECT postId FROM reports WHERE id = ?), ?, ?, ?, ?)',
+      [reportId, 'report-reviewed', 'admin', staffNotes, resolvedAt]);
+    
+    res.json({ id: parseInt(reportId), status: 'reviewed' });
+  });
+});
+
+// POST: Take action on a reported post (remove/reject the post)
+app.post('/api/moderation/reports/:id/action', requireAdmin, (req, res) => {
+  const reportId = req.params.id;
+  const { action = 'reject', staffNotes = '' } = req.body || {};
+  const resolvedAt = Date.now();
+  
+  // First, get the postId from the report
+  db.get('SELECT postId FROM reports WHERE id = ?', [reportId], (err, report) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    
+    const postId = report.postId;
+    const newPostStatus = action === 'approve' ? 'approved' : 'rejected';
+    
+    // Update the post status
+    db.run(`UPDATE posts SET status = ? WHERE id = ?`, [newPostStatus, postId], function (err2) {
+      if (err2) return res.status(500).json({ error: err2.message });
+      
+      // Update the report status
+      db.run(`
+        UPDATE reports 
+        SET status = 'actioned', staffNotes = ?, resolvedBy = 'admin', resolvedAt = ?
+        WHERE id = ?
+      `, [staffNotes, resolvedAt, reportId], function (err3) {
+        if (err3) return res.status(500).json({ error: err3.message });
+        
+        // Also mark other pending reports for the same post as actioned
+        db.run(`
+          UPDATE reports 
+          SET status = 'actioned', staffNotes = 'Resolved via report #' || ?, resolvedBy = 'admin', resolvedAt = ?
+          WHERE postId = ? AND status = 'pending' AND id != ?
+        `, [reportId, resolvedAt, postId, reportId]);
+        
+        // Log the action in moderation table
+        db.run('INSERT INTO moderation (postId, action, admin, reason, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [postId, 'report-action-' + action, 'admin', staffNotes, resolvedAt]);
+        
+        res.json({ 
+          reportId: parseInt(reportId), 
+          reportStatus: 'actioned', 
+          postId: postId,
+          postStatus: newPostStatus 
+        });
+      });
+    });
+  });
+});
+
+// POST: Bulk action on multiple reports
+app.post('/api/moderation/reports/bulk', requireAdmin, (req, res) => {
+  const { reportIds = [], action = 'dismiss', staffNotes = '' } = req.body || {};
+  
+  if (!Array.isArray(reportIds) || reportIds.length === 0) {
+    return res.status(400).json({ error: 'reportIds array required' });
+  }
+  
+  // Validate that all reportIds are integers to prevent SQL injection
+  const validatedIds = reportIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id) && id > 0);
+  if (validatedIds.length === 0) {
+    return res.status(400).json({ error: 'No valid report IDs provided' });
+  }
+  
+  const validActions = ['dismiss', 'reviewed'];
+  if (!validActions.includes(action)) {
+    return res.status(400).json({ error: 'Invalid action. Use: dismiss, reviewed' });
+  }
+  
+  const resolvedAt = Date.now();
+  const status = action === 'dismiss' ? 'dismissed' : 'reviewed';
+  const placeholders = validatedIds.map(() => '?').join(',');
+  
+  db.run(`
+    UPDATE reports 
+    SET status = ?, staffNotes = ?, resolvedBy = 'admin', resolvedAt = ?
+    WHERE id IN (${placeholders})
+  `, [status, staffNotes, resolvedAt, ...validatedIds], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ updated: this.changes, status });
+  });
+});
+
+// ========================================
+// End Staff Moderation Backend
+// ========================================
 
 // Parent login: return JWT
 app.post('/api/parents/login', (req, res) => {
