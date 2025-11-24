@@ -327,6 +327,37 @@ app.get('/api/posts', (req, res) => {
   });
 });
 
+// Paginated feed endpoint for swipe/pagination UI
+app.get('/api/feed', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page || '1'));
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit || '5')));
+  const offset = (page - 1) * limit;
+  // return approved posts, newest first
+  db.all("SELECT * FROM posts WHERE status='approved' ORDER BY createdAt DESC LIMIT ? OFFSET ?", [limit, offset], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    // produce a thumbnail if missing (simple SVG data URI)
+    const makeThumb = (p) => {
+      if (p.mediaUrl && p.mediaType === 'image') return p.mediaUrl;
+      if (p.mediaUrl && /youtube.com|youtu.be/i.test(p.mediaUrl)) {
+        // best-effort youtube thumbnail (works for most videos)
+        try {
+          const u = new URL(p.mediaUrl);
+          let id = null;
+          if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
+          else id = u.searchParams.get('v');
+          if (id) return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+        } catch (e) { /* ignore */ }
+      }
+      // fallback: svg with title text
+      const txt = (p.title || 'Recess').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'><rect width='100%' height='100%' fill='#e6f2ff'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='Arial,Segoe UI,Helvetica' font-size='28' fill='#0b4ea2'>${txt}</text></svg>`;
+      return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    };
+    const out = rows.map(r => ({ id: r.id, title: r.title, description: r.description, mediaUrl: r.mediaUrl, mediaType: r.mediaType, category: r.category, thumbnail: makeThumb(r), createdAt: r.createdAt }));
+    res.json({ page, limit, posts: out, hasMore: rows.length === limit });
+  });
+});
+
 // API: create post (multipart: media)
 app.post('/api/posts', upload.single('media'), (req, res) => {
   const { title = '', description = '', category = '', tags = '', childEmail = '', mediaUrl: bodyMediaUrl = '' } = req.body;

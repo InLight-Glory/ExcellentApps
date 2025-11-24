@@ -570,3 +570,103 @@ async function demoSignIn(email) {
 }
 if (quickKid5) quickKid5.addEventListener('click', (e) => { e.preventDefault(); demoSignIn('kid5@local'); });
 if (quickTeen14) quickTeen14.addEventListener('click', (e) => { e.preventDefault(); demoSignIn('teen14@local'); });
+
+// Swipe feed: full-screen single-item pager for touch and keyboard testing
+const btnSwipe = qs('#btn-swipe');
+const swipeView = qs('#swipeView');
+const swipeContainer = qs('#swipeContainer');
+const swipeClose = qs('#swipeClose');
+const swipePagination = qs('#swipePagination');
+const swipeMeta = qs('#swipeMeta');
+
+let swipeFeedPage = 1;
+let swipeFeedLimit = 5;
+let swipePosts = [];
+let swipeIndex = 0;
+
+if (btnSwipe) btnSwipe.addEventListener('click', async () => { await enterSwipeMode(); });
+if (swipeClose) swipeClose.addEventListener('click', () => exitSwipeMode());
+
+async function fetchFeedPage(page = 1) {
+  try {
+    const res = await fetch(`${API_BASE}/feed?page=${page}&limit=${swipeFeedLimit}`);
+    if (!res.ok) return { posts: [], hasMore: false };
+    return await res.json();
+  } catch (e) { return { posts: [], hasMore: false }; }
+}
+
+async function enterSwipeMode() {
+  swipeFeedPage = 1; swipePosts = []; swipeIndex = 0;
+  const data = await fetchFeedPage(swipeFeedPage);
+  swipePosts = data.posts || [];
+  swipeView.classList.remove('hidden'); swipeView.setAttribute('aria-hidden','false');
+  renderSwipeItem(swipeIndex);
+  updateSwipePagination();
+  // attach key handlers
+  window.addEventListener('keydown', swipeKeyHandler);
+  // touch handlers
+  initSwipeTouchHandlers();
+}
+
+function exitSwipeMode() {
+  swipeView.classList.add('hidden'); swipeView.setAttribute('aria-hidden','true');
+  swipeContainer.innerHTML = '';
+  window.removeEventListener('keydown', swipeKeyHandler);
+}
+
+function updateSwipePagination(){
+  swipePagination.textContent = `Item ${Math.min(swipeIndex+1, swipePosts.length)} of ${swipePosts.length} (page ${swipeFeedPage})`;
+  swipeMeta.textContent = swipePosts[swipeIndex] ? `${swipePosts[swipeIndex].title || ''} • ${swipePosts[swipeIndex].category || ''}` : '';
+}
+
+function renderSwipeItem(index) {
+  const p = swipePosts[index];
+  // pause any playing video before replacing the content
+  try { Array.from(swipeContainer.querySelectorAll('video')).forEach(v => { try { v.pause(); } catch(e){} }); } catch(e){}
+  swipeContainer.innerHTML = '';
+  if (!p) { swipeContainer.innerHTML = '<div class="muted">No posts</div>'; return; }
+  const el = document.createElement('div'); el.className = 'swipe-item';
+  if (p.mediaType === 'video' || (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i))) {
+    const v = document.createElement('video'); v.src = p.mediaUrl; v.controls = true; v.muted = true; v.playsInline = true; v.autoplay = true; v.style.maxHeight = '100%'; el.appendChild(v);
+    // try to autoplay; if blocked, leave controls for manual play
+    v.play().catch(()=>{});
+  } else if (p.mediaUrl) {
+    const img = document.createElement('img'); img.src = p.thumbnail || p.mediaUrl; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+  } else {
+    const img = document.createElement('img'); img.src = p.thumbnail; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+  }
+  const info = document.createElement('div'); info.style.marginTop='8px'; info.style.textAlign='center'; info.innerHTML = `<h3 style="margin:6px 0">${p.title||'Untitled'}</h3><div class="muted small">${p.description||''}</div>`;
+  el.appendChild(info);
+  swipeContainer.appendChild(el);
+  updateSwipePagination();
+}
+
+function swipeKeyHandler(e){
+  if (e.key === 'ArrowDown' || e.key === 'j') return swipeNext();
+  if (e.key === 'ArrowUp' || e.key === 'k') return swipePrev();
+  if (e.key === 'Escape') return exitSwipeMode();
+}
+
+async function swipeNext(){
+  if (swipeIndex < swipePosts.length - 1) { swipeIndex++; renderSwipeItem(swipeIndex); }
+  else if (swipePosts.length && swipePosts.length === swipeFeedLimit) {
+    // fetch next page
+    swipeFeedPage++;
+    const data = await fetchFeedPage(swipeFeedPage);
+    if (data.posts && data.posts.length) {
+      swipePosts = swipePosts.concat(data.posts);
+      swipeIndex++;
+      renderSwipeItem(swipeIndex);
+    }
+  }
+}
+
+function swipePrev(){ if (swipeIndex > 0) { swipeIndex--; renderSwipeItem(swipeIndex); } }
+
+// Touch handlers: simple vertical swipe detection
+function initSwipeTouchHandlers(){
+  let startY = 0; let down = false;
+  swipeContainer.addEventListener('touchstart', (ev) => { if (ev.touches && ev.touches[0]) { startY = ev.touches[0].clientY; down = true; } });
+  swipeContainer.addEventListener('touchmove', (ev) => { if (!down) return; const y = ev.touches[0].clientY; const dy = y - startY; if (Math.abs(dy) > 80) { down = false; if (dy < 0) swipeNext(); else swipePrev(); } });
+  swipeContainer.addEventListener('touchend', () => { down = false; });
+}
