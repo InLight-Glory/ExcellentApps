@@ -451,21 +451,28 @@
         }
       ];
 
+      // Configuration constants
+      const SWIPE_THRESHOLD_PX = 50;
+      const AUTO_ADVANCE_INTERVAL_MS = 10000;
+
       let currentVideoIndex = 0;
+      let autoAdvanceIntervalId = null;
       const videoContainer = document.getElementById('videoContainer');
       const videoNav = document.getElementById('videoNav');
 
-      // Create video slides
+      // Create video slides - uses visibility toggle instead of iframe src reload
       function createVideoSlides() {
         videos.forEach((video, index) => {
           // Create slide
           const slide = document.createElement('div');
           slide.className = 'video-slide' + (index === 0 ? ' active' : '');
+          slide.dataset.videoIndex = index;
           slide.innerHTML = `
             <iframe 
-              src="https://www.youtube.com/embed/${video.id}?autoplay=${index === 0 ? 1 : 0}&mute=1&loop=1&playlist=${video.id}&controls=0&modestbranding=1&rel=0&showinfo=0" 
+              src="https://www.youtube.com/embed/${video.id}?mute=1&loop=1&playlist=${video.id}&controls=0&modestbranding=1&rel=0&showinfo=0&enablejsapi=1" 
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowfullscreen
+              loading="lazy"
             ></iframe>
             <div class="video-info">
               <h3>${video.title}</h3>
@@ -482,23 +489,19 @@
           // Create nav dot
           const dot = document.createElement('div');
           dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
-          dot.onclick = () => goToVideo(index);
+          dot.onclick = () => {
+            goToVideo(index, true); // true = user-initiated
+          };
           videoNav.appendChild(dot);
         });
       }
 
-      function goToVideo(index) {
+      function goToVideo(index, isUserInitiated = false) {
         const slides = document.querySelectorAll('.video-slide');
         const dots = document.querySelectorAll('.nav-dot');
         
         slides.forEach((slide, i) => {
           slide.classList.toggle('active', i === index);
-          // Update iframe autoplay
-          const iframe = slide.querySelector('iframe');
-          if (iframe) {
-            const video = videos[i];
-            iframe.src = `https://www.youtube.com/embed/${video.id}?autoplay=${i === index ? 1 : 0}&mute=1&loop=1&playlist=${video.id}&controls=0&modestbranding=1&rel=0&showinfo=0`;
-          }
         });
         
         dots.forEach((dot, i) => {
@@ -506,6 +509,11 @@
         });
         
         currentVideoIndex = index;
+
+        // Reset auto-advance timer when user manually navigates
+        if (isUserInitiated) {
+          resetAutoAdvance();
+        }
       }
 
       function nextVideo() {
@@ -513,11 +521,28 @@
         goToVideo(next);
       }
 
+      function startAutoAdvance() {
+        if (autoAdvanceIntervalId) {
+          clearInterval(autoAdvanceIntervalId);
+        }
+        autoAdvanceIntervalId = setInterval(nextVideo, AUTO_ADVANCE_INTERVAL_MS);
+      }
+
+      function resetAutoAdvance() {
+        // Restart auto-advance timer
+        startAutoAdvance();
+      }
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        if (autoAdvanceIntervalId) {
+          clearInterval(autoAdvanceIntervalId);
+        }
+      });
+
       // Initialize
       createVideoSlides();
-
-      // Auto-advance videos every 10 seconds
-      setInterval(nextVideo, 10000);
+      startAutoAdvance();
 
       // Swipe support for mobile
       let touchStartY = 0;
@@ -529,14 +554,15 @@
         const touchEndY = e.changedTouches[0].clientY;
         const diff = touchStartY - touchEndY;
         
-        if (Math.abs(diff) > 50) {
+        if (Math.abs(diff) > SWIPE_THRESHOLD_PX) {
           if (diff > 0) {
             // Swipe up - next video
-            nextVideo();
+            const next = (currentVideoIndex + 1) % videos.length;
+            goToVideo(next, true);
           } else {
             // Swipe down - previous video
             const prev = (currentVideoIndex - 1 + videos.length) % videos.length;
-            goToVideo(prev);
+            goToVideo(prev, true);
           }
         }
       });
