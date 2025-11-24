@@ -254,6 +254,29 @@ if (userLogoutBtn) userLogoutBtn.addEventListener('click', async () => {
 // Try to render session/user info on load into the new panel
 loadSession().then(s => { if (s) renderUserInfo(s); });
 
+// If the app is opened with ?demoEmail=..., open the User panel and prefill the email
+// so the tester can enter the demo password (demo123) manually instead of being auto-signed in.
+(function handleDemoPrefill() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const demoEmail = params.get('demoEmail');
+    if (!demoEmail) return;
+    // Show the user panel and prefill the login form
+    show('user');
+    const emailInput = qs('#userEmail');
+    const pwdInput = qs('#userPassword');
+    const msg = qs('#userMsg');
+    if (emailInput) emailInput.value = demoEmail;
+    if (msg) msg.textContent = 'Enter password (demo123)';
+    if (pwdInput) {
+      pwdInput.focus();
+    }
+    // Remove the param from the URL so repeated reload doesn't re-trigger
+    const cleanPath = window.location.pathname + window.location.hash;
+    history.replaceState(null, '', cleanPath);
+  } catch (e) { /* ignore */ }
+})();
+
 const parentLogoutBtn = qs('#parentLogout');
 if (parentLogoutBtn) parentLogoutBtn.addEventListener('click', async () => {
   try { await fetch(`${API_BASE}/parents/logout`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}

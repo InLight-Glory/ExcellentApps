@@ -57,5 +57,21 @@
 
       <footer style="margin-top:28px;text-align:center;color:var(--muted)">&copy; Recess — Local demo. Not for production use.</footer>
     </main>
+      <script>
+        // Quick demo sign-in handlers (landing page only)
+        // Instead of auto-signing in (which posts the demo-login and sets a cookie),
+        // redirect to the app and prefill the user login form so you can type the
+        // demo password (demo123) manually. This avoids auto-logging-in from the landing page.
+        function demoPrefill(email) {
+          const url = '/index.html?demoEmail=' + encodeURIComponent(email);
+          window.location.href = url;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+          const k = document.getElementById('quickKid5');
+          const t = document.getElementById('quickTeen14');
+          if (k) k.addEventListener('click', (e) => { e.preventDefault(); demoPrefill('kid5@local'); });
+          if (t) t.addEventListener('click', (e) => { e.preventDefault(); demoPrefill('teen14@local'); });
+        });
+      </script>
   </body>
 </html>
