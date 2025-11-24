@@ -6,56 +6,567 @@
     <title>Recess — Welcome</title>
     <link rel="stylesheet" href="style.css">
     <style>
-      .hero{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 18px;min-height:70vh}
-      .hero h1{font-size:2.4rem;margin:0}
-      .hero p{color:var(--muted);margin-top:8px}
-      .hero .ctas{margin-top:22px;display:flex;gap:12px;flex-wrap:wrap}
-      .logo-spot{width:84px;height:84px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--primary));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;margin-bottom:14px}
-      .small-muted{color:var(--muted);font-size:0.9rem;margin-top:12px}
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      
+      body {
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .landing-container {
+        display: flex;
+        min-height: 100vh;
+      }
+
+      /* Left side - Video Feed */
+      .video-feed-section {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        position: relative;
+      }
+
+      .video-feed {
+        width: 100%;
+        max-width: 400px;
+        height: 85vh;
+        background: #000;
+        border-radius: 24px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5), 0 0 40px rgba(99, 102, 241, 0.3);
+      }
+
+      .video-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+
+      .video-slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        transition: opacity 0.5s ease-in-out;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .video-slide.active {
+        opacity: 1;
+      }
+
+      .video-slide iframe {
+        width: 100%;
+        flex: 1;
+        border: none;
+      }
+
+      .video-info {
+        position: absolute;
+        bottom: 80px;
+        left: 16px;
+        right: 60px;
+        color: white;
+        z-index: 10;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+      }
+
+      .video-info h3 {
+        font-size: 1rem;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+
+      .video-info p {
+        font-size: 0.85rem;
+        opacity: 0.9;
+      }
+
+      .video-actions {
+        position: absolute;
+        right: 12px;
+        bottom: 100px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        z-index: 10;
+      }
+
+      .video-action-btn {
+        width: 48px;
+        height: 48px;
+        background: rgba(255,255,255,0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        cursor: pointer;
+        transition: transform 0.2s, background 0.2s;
+        border: none;
+        font-size: 1.2rem;
+      }
+
+      .video-action-btn:hover {
+        transform: scale(1.1);
+        background: rgba(255,255,255,0.25);
+      }
+
+      .video-nav {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        z-index: 10;
+      }
+
+      .nav-dot {
+        width: 8px;
+        height: 8px;
+        background: rgba(255,255,255,0.4);
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .nav-dot.active {
+        width: 24px;
+        border-radius: 4px;
+        background: white;
+      }
+
+      /* Right side - Content */
+      .content-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: white;
+      }
+
+      .brand-section {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .logo-animated {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+        border-radius: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: white;
+        margin: 0 auto 20px;
+        animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+
+      @keyframes glow {
+        from { box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4); }
+        to { box-shadow: 0 15px 60px rgba(240, 147, 251, 0.5); }
+      }
+
+      .brand-section h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #fff 0%, #e0e7ff 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 12px;
+      }
+
+      .tagline {
+        font-size: 1.2rem;
+        color: rgba(255,255,255,0.8);
+        max-width: 400px;
+        line-height: 1.6;
+      }
+
+      .features {
+        display: flex;
+        gap: 16px;
+        margin: 24px 0;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .feature-tag {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.9);
+        border: 1px solid rgba(255,255,255,0.2);
+      }
+
+      .ctas {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+        max-width: 320px;
+        margin-top: 24px;
+      }
+
+      .btn-landing {
+        padding: 16px 32px;
+        border-radius: 14px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+        display: block;
+        border: none;
+      }
+
+      .btn-primary-landing {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-primary-landing:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5);
+      }
+
+      .btn-secondary-landing {
+        background: rgba(255,255,255,0.1);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        backdrop-filter: blur(10px);
+      }
+
+      .btn-secondary-landing:hover {
+        background: rgba(255,255,255,0.2);
+      }
+
+      .demo-section {
+        margin-top: 32px;
+        text-align: center;
+      }
+
+      .demo-label {
+        font-size: 0.9rem;
+        color: rgba(255,255,255,0.6);
+        margin-bottom: 12px;
+      }
+
+      .demo-buttons {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .btn-demo {
+        padding: 10px 20px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.15);
+        border-radius: 10px;
+        color: rgba(255,255,255,0.9);
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-demo:hover {
+        background: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.3);
+      }
+
+      .footer-links {
+        margin-top: 40px;
+        display: flex;
+        gap: 24px;
+        font-size: 0.9rem;
+      }
+
+      .footer-links a {
+        color: rgba(255,255,255,0.6);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .scroll-indicator {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: 20px;
+        color: rgba(255,255,255,0.5);
+        font-size: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        animation: bounce 2s infinite;
+      }
+
+      @keyframes bounce {
+        0%, 100% { transform: translateX(-50%) translateY(0); }
+        50% { transform: translateX(-50%) translateY(-5px); }
+      }
+
+      /* Responsive */
+      @media (max-width: 900px) {
+        .landing-container {
+          flex-direction: column;
+        }
+        
+        .video-feed-section {
+          order: 2;
+          padding: 20px;
+        }
+        
+        .video-feed {
+          height: 60vh;
+          max-width: 350px;
+        }
+        
+        .content-section {
+          order: 1;
+          padding: 30px 20px;
+        }
+        
+        .brand-section h1 {
+          font-size: 2.2rem;
+        }
+      }
     </style>
   </head>
   <body>
-    <main style="max-width:980px;margin:28px auto;text-align:center">
-      <div class="brand" style="display:flex;flex-direction:column;align-items:center">
-        <div class="logo-spot">Re</div>
-        <h1 style="margin-top:8px">Welcome to Recess</h1>
-        <p class="tagline">A safe place for kids to share short learning videos and projects.</p>
-      </div>
-
-      <section class="hero">
-        <div style="max-width:760px">
-          <p style="font-size:1.05rem;margin:0">Recess is a demo prototype for sharing short science and learning videos. Parents approve posts from their children, and staff can moderate escalations. This page is a landing entry to the app — no accounts required for a quick look.</p>
-
-          <div class="ctas">
-            <!-- Point to the actual app file so server redirect doesn't loop guests back here -->
-            <a class="btn primary" href="/index.html">Enter the App</a>
-            <a class="btn" href="/index.html#parent">Parent Login</a>
-            <a class="btn" href="/index.html#admin">Admin Login</a>
+    <div class="landing-container">
+      <!-- Video Feed Section -->
+      <section class="video-feed-section">
+        <div class="video-feed">
+          <div class="scroll-indicator">
+            <span>Swipe to explore</span>
+            <span>↓</span>
           </div>
-
-          <div style="margin-top:14px">
-            <div style="font-weight:600;margin-bottom:6px">Quick demo sign-in</div>
-            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-              <button id="quickKid5" class="btn">Sign in as Sam (kid5@local)</button>
-              <button id="quickTeen14" class="btn">Sign in as Alex (teen14@local)</button>
-            </div>
-            <div class="small-muted">Demo password (if needed): <strong>demo123</strong></div>
+          
+          <div class="video-container" id="videoContainer">
+            <!-- Video slides will be populated by JavaScript -->
           </div>
-
-          <div class="small-muted">Tip: use the Parent or Admin panels inside the app to moderate posts.</div>
+          
+          <div class="video-nav" id="videoNav">
+            <!-- Navigation dots will be populated by JavaScript -->
+          </div>
         </div>
       </section>
 
-      <section style="margin-top:18px;text-align:left">
-        <h3>About this demo</h3>
-        <ul>
-          <li>Uses YouTube embeds to demo video posts (no hosting required).</li>
-          <li>Admin token and demo accounts are stored in `server/config.json` for local testing.</li>
-          <li>Parent login is accessible from the Parent panel inside the app.</li>
-        </ul>
-      </section>
+      <!-- Content Section -->
+      <section class="content-section">
+        <div class="brand-section">
+          <div class="logo-animated">Re</div>
+          <h1>Recess</h1>
+          <p class="tagline">A safe place for kids to share short learning videos and projects with parent-approved moderation.</p>
+          
+          <div class="features">
+            <span class="feature-tag">🔬 Science</span>
+            <span class="feature-tag">🎨 Art</span>
+            <span class="feature-tag">📚 Learning</span>
+            <span class="feature-tag">👨‍👩‍👧 Parent Safe</span>
+          </div>
+        </div>
 
-      <footer style="margin-top:28px;text-align:center;color:var(--muted)">&copy; Recess — Local demo. Not for production use.</footer>
-    </main>
+        <div class="ctas">
+          <a class="btn-landing btn-primary-landing" href="/index.html">🚀 Enter the App</a>
+          <a class="btn-landing btn-secondary-landing" href="/index.html#parent">👨‍👩‍👧 Parent Login</a>
+          <a class="btn-landing btn-secondary-landing" href="/index.html#admin">🛡️ Admin Login</a>
+        </div>
+
+        <div class="demo-section">
+          <div class="demo-label">Try a quick demo</div>
+          <div class="demo-buttons">
+            <button id="quickKid5" class="btn-demo">👧 Sign in as Sam</button>
+            <button id="quickTeen14" class="btn-demo">🧑 Sign in as Alex</button>
+          </div>
+        </div>
+
+        <div class="footer-links">
+          <a href="#">About</a>
+          <a href="#">Privacy</a>
+          <a href="#">Help</a>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Educational YouTube video playlist - short learning videos for kids
+      const videos = [
+        {
+          id: 'Unzc731iCUY',
+          title: 'How Evolution Works',
+          author: 'Kurzgesagt'
+        },
+        {
+          id: 'QImCld9YubE',
+          title: 'The Solar System',
+          author: 'National Geographic'
+        },
+        {
+          id: 'wupToqz1e2g',
+          title: 'Why the Sky is Blue',
+          author: 'MinutePhysics'
+        },
+        {
+          id: 'xuCn8ux2gbs',
+          title: 'History of the Universe',
+          author: 'Kurzgesagt'
+        },
+        {
+          id: 'rLsimRuqGDg',
+          title: 'How Volcanoes Work',
+          author: 'TED-Ed'
+        }
+      ];
+
+      let currentVideoIndex = 0;
+      const videoContainer = document.getElementById('videoContainer');
+      const videoNav = document.getElementById('videoNav');
+
+      // Create video slides
+      function createVideoSlides() {
+        videos.forEach((video, index) => {
+          // Create slide
+          const slide = document.createElement('div');
+          slide.className = 'video-slide' + (index === 0 ? ' active' : '');
+          slide.innerHTML = `
+            <iframe 
+              src="https://www.youtube.com/embed/${video.id}?autoplay=${index === 0 ? 1 : 0}&mute=1&loop=1&playlist=${video.id}&controls=0&modestbranding=1&rel=0&showinfo=0" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+            <div class="video-info">
+              <h3>${video.title}</h3>
+              <p>@${video.author}</p>
+            </div>
+            <div class="video-actions">
+              <button class="video-action-btn" title="Like">❤️</button>
+              <button class="video-action-btn" title="Share">📤</button>
+              <button class="video-action-btn" title="Save">🔖</button>
+            </div>
+          `;
+          videoContainer.appendChild(slide);
+
+          // Create nav dot
+          const dot = document.createElement('div');
+          dot.className = 'nav-dot' + (index === 0 ? ' active' : '');
+          dot.onclick = () => goToVideo(index);
+          videoNav.appendChild(dot);
+        });
+      }
+
+      function goToVideo(index) {
+        const slides = document.querySelectorAll('.video-slide');
+        const dots = document.querySelectorAll('.nav-dot');
+        
+        slides.forEach((slide, i) => {
+          slide.classList.toggle('active', i === index);
+          // Update iframe autoplay
+          const iframe = slide.querySelector('iframe');
+          if (iframe) {
+            const video = videos[i];
+            iframe.src = `https://www.youtube.com/embed/${video.id}?autoplay=${i === index ? 1 : 0}&mute=1&loop=1&playlist=${video.id}&controls=0&modestbranding=1&rel=0&showinfo=0`;
+          }
+        });
+        
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === index);
+        });
+        
+        currentVideoIndex = index;
+      }
+
+      function nextVideo() {
+        const next = (currentVideoIndex + 1) % videos.length;
+        goToVideo(next);
+      }
+
+      // Initialize
+      createVideoSlides();
+
+      // Auto-advance videos every 10 seconds
+      setInterval(nextVideo, 10000);
+
+      // Swipe support for mobile
+      let touchStartY = 0;
+      videoContainer.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;
+      });
+
+      videoContainer.addEventListener('touchend', (e) => {
+        const touchEndY = e.changedTouches[0].clientY;
+        const diff = touchStartY - touchEndY;
+        
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) {
+            // Swipe up - next video
+            nextVideo();
+          } else {
+            // Swipe down - previous video
+            const prev = (currentVideoIndex - 1 + videos.length) % videos.length;
+            goToVideo(prev);
+          }
+        }
+      });
+
+      // Demo sign-in handlers
+      const API_BASE = '/api';
+      
+      async function demoSignIn(email) {
+        try {
+          const res = await fetch(`${API_BASE}/users/demo-login`, { 
+            method: 'POST', 
+            credentials: 'same-origin', 
+            headers: {'Content-Type':'application/json'}, 
+            body: JSON.stringify({ email }) 
+          });
+          if (!res.ok) {
+            const b = await res.json().catch(() => ({}));
+            return alert('Demo sign-in failed: ' + (b.error || res.status));
+          }
+          const body = await res.json().catch(() => ({}));
+          if (body && body.token) localStorage.setItem('recess_user_jwt', body.token);
+          window.location.href = '/index.html';
+        } catch (e) { 
+          console.error(e); 
+          alert('Demo sign-in error'); 
+        }
+      }
+
+      document.getElementById('quickKid5').addEventListener('click', () => demoSignIn('kid5@local'));
+      document.getElementById('quickTeen14').addEventListener('click', () => demoSignIn('teen14@local'));
+    </script>
   </body>
 </html>
