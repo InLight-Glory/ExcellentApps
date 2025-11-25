@@ -38,13 +38,16 @@ async function showAdmin(){
   const token = getAdminToken();
   const adminForm = qs('#adminLoginForm');
   const adminMsg = qs('#adminLoginMsg');
+  const adminTabs = qs('#adminTabs');
   if (token) {
     if (adminForm) adminForm.style.display = 'none';
     if (adminMsg) adminMsg.textContent = '';
-    loadPending();
+    if (adminTabs) adminTabs.style.display = 'flex';
+    showAdminTab('pending');
   } else {
     if (adminForm) adminForm.style.display = '';
     if (adminMsg) adminMsg.textContent = '';
+    if (adminTabs) adminTabs.style.display = 'none';
     qs('#pendingList').innerHTML = '';
   }
 }
@@ -56,6 +59,7 @@ if (adminLoginForm) {
     e.preventDefault();
     const token = qs('#adminTokenInput').value;
     const msg = qs('#adminLoginMsg');
+    const adminTabs = qs('#adminTabs');
     if (!token) { msg.textContent = 'Enter token'; return; }
     // send to server to set an HttpOnly cookie for admin session
     fetch(`${API_BASE}/admin/login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token }) })
@@ -65,7 +69,8 @@ if (adminLoginForm) {
           localStorage.setItem('recess_admin_token', token);
           msg.textContent = 'Saved';
           adminLoginForm.style.display = 'none';
-          loadPending();
+          if (adminTabs) adminTabs.style.display = 'flex';
+          showAdminTab('pending');
         } else {
           msg.textContent = b.error || 'Login failed';
         }
@@ -358,12 +363,66 @@ function renderPost(p){
   like.onclick = async () => { await fetch(`${API_BASE}/posts/${p.id}/like`, { method:'POST' }); loadFeed(); };
   actions.appendChild(like);
 
+  // Report button with category selection
+  const report = document.createElement('button'); report.className='btn'; report.textContent = 'Report';
+  report.onclick = () => showReportDialog(p.id, p.title);
+  actions.appendChild(report);
+
   // status badge for dev clarity
   const status = document.createElement('div'); status.className = 'muted small'; status.style.marginLeft='8px'; status.textContent = p.status || '';
   actions.appendChild(status);
 
   card.appendChild(actions);
   return card;
+}
+
+// Report dialog for posts
+async function showReportDialog(postId, postTitle) {
+  // Fetch categories if not cached
+  let categories = ['inappropriate', 'suggestive', 'inaccurate', 'misleading', 'spam', 'harassment', 'dangerous', 'copyright', 'other'];
+  try {
+    const res = await fetch(`${API_BASE}/moderation/report-categories`);
+    if (res.ok) categories = await res.json();
+  } catch (e) { /* use default */ }
+  
+  const categoryLabels = {
+    'inappropriate': 'Inappropriate content',
+    'suggestive': 'Suggestive/adult content',
+    'inaccurate': 'Inaccurate information',
+    'misleading': 'Misleading content',
+    'spam': 'Spam or promotional',
+    'harassment': 'Harassment or bullying',
+    'dangerous': 'Dangerous activities',
+    'copyright': 'Copyright violation',
+    'other': 'Other'
+  };
+  
+  const categoryList = categories.map(c => `${c}: ${categoryLabels[c] || c}`).join('\n');
+  const reasonCategory = prompt(`Report "${postTitle}"\n\nSelect a reason category:\n${categoryList}\n\nEnter category name:`);
+  
+  if (!reasonCategory) return;
+  
+  const validCategory = categories.includes(reasonCategory.toLowerCase()) ? reasonCategory.toLowerCase() : 'other';
+  const reason = prompt('Please describe the issue (optional):') || '';
+  
+  try {
+    const res = await fetch(`${API_BASE}/posts/${postId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reasonCategory: validCategory, reason })
+    });
+    
+    if (res.ok) {
+      alert('Thank you for your report. Our staff will review it.');
+      loadFeed();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert('Report failed: ' + (err.error || 'Unknown error'));
+    }
+  } catch (e) {
+    console.error('Report failed:', e);
+    alert('Report failed');
+  }
 }
 
 // Upload
@@ -468,6 +527,297 @@ async function adminAction(id, action){
   const res = await fetch(url, opts);
   if (res.status === 401) return alert('Admin session missing or expired. Please log in via the Admin panel.');
 }
+
+// ========================================
+// Staff Moderation UI for Flagged Posts
+// ========================================
+
+// Admin tab switching
+const tabPending = qs('#tabPending');
+const tabReports = qs('#tabReports');
+const tabStats = qs('#tabStats');
+const pendingTab = qs('#pendingTab');
+const reportsTab = qs('#reportsTab');
+const statsTab = qs('#statsTab');
+const adminTabs = qs('#adminTabs');
+
+function showAdminTab(tabName) {
+  // Hide all tab contents
+  [pendingTab, reportsTab, statsTab].forEach(t => { if (t) t.classList.add('hidden'); });
+  // Remove active from all tab buttons
+  [tabPending, tabReports, tabStats].forEach(b => { if (b) b.classList.remove('active'); });
+  
+  if (tabName === 'pending') {
+    if (pendingTab) pendingTab.classList.remove('hidden');
+    if (tabPending) tabPending.classList.add('active');
+    loadPending();
+  } else if (tabName === 'reports') {
+    if (reportsTab) reportsTab.classList.remove('hidden');
+    if (tabReports) tabReports.classList.add('active');
+    loadReports();
+  } else if (tabName === 'stats') {
+    if (statsTab) statsTab.classList.remove('hidden');
+    if (tabStats) tabStats.classList.add('active');
+    loadModerationStats();
+  }
+}
+
+if (tabPending) tabPending.addEventListener('click', () => showAdminTab('pending'));
+if (tabReports) tabReports.addEventListener('click', () => showAdminTab('reports'));
+if (tabStats) tabStats.addEventListener('click', () => showAdminTab('stats'));
+
+// Load report categories into filter dropdown
+async function loadReportCategories() {
+  try {
+    const res = await fetch(`${API_BASE}/moderation/report-categories`);
+    const categories = await res.json();
+    const filterCategory = qs('#filterCategory');
+    if (filterCategory && Array.isArray(categories)) {
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+        filterCategory.appendChild(opt);
+      });
+    }
+  } catch (e) { console.error('Failed to load report categories:', e); }
+}
+
+// Load reports with filtering
+async function loadReports() {
+  const filterStatus = qs('#filterStatus');
+  const filterCategory = qs('#filterCategory');
+  const reportsList = qs('#reportsList');
+  
+  if (!reportsList) return;
+  
+  const params = new URLSearchParams();
+  if (filterStatus && filterStatus.value) params.set('status', filterStatus.value);
+  if (filterCategory && filterCategory.value) params.set('reasonCategory', filterCategory.value);
+  
+  reportsList.innerHTML = '<div class="muted">Loading reports...</div>';
+  
+  try {
+    const res = await fetch(`${API_BASE}/moderation/reports?${params.toString()}`, { credentials: 'same-origin' });
+    if (res.status === 401) {
+      reportsList.innerHTML = '<div class="muted">Admin session required</div>';
+      return;
+    }
+    const reports = await res.json();
+    
+    if (!reports.length) {
+      reportsList.innerHTML = '<div class="muted">No reports found</div>';
+      return;
+    }
+    
+    reportsList.innerHTML = '';
+    reports.forEach(r => {
+      const card = renderReportCard(r);
+      reportsList.appendChild(card);
+    });
+  } catch (e) {
+    console.error('Failed to load reports:', e);
+    reportsList.innerHTML = '<div class="muted">Error loading reports</div>';
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function renderReportCard(r) {
+  const card = document.createElement('div');
+  card.className = `report-card ${r.status || 'pending'}`;
+  
+  const categoryClass = r.reasonCategory || 'other';
+  const categoryLabel = (r.reasonCategory || 'other').charAt(0).toUpperCase() + (r.reasonCategory || 'other').slice(1);
+  const statusLabel = (r.status || 'pending').charAt(0).toUpperCase() + (r.status || 'pending').slice(1);
+  const createdDate = r.createdAt ? new Date(r.createdAt).toLocaleString() : 'Unknown';
+  
+  card.innerHTML = `
+    <div class="report-header">
+      <span class="report-category ${categoryClass}">${escapeHtml(categoryLabel)}</span>
+      <span class="report-status">${escapeHtml(statusLabel)}</span>
+    </div>
+    <div class="report-post-info">
+      <h4>${escapeHtml(r.postTitle || 'Untitled Post')}</h4>
+      <div class="muted small">Post ID: ${r.postId} • Post Status: ${escapeHtml(r.postStatus || 'unknown')}</div>
+      ${r.postAuthorName ? `<div class="muted small">Author: ${escapeHtml(r.postAuthorName)}</div>` : ''}
+    </div>
+    ${r.reason ? `<div class="report-reason">"${escapeHtml(r.reason)}"</div>` : ''}
+    <div class="muted small">
+      Reported: ${escapeHtml(createdDate)}
+      ${r.reporterName ? ` by ${escapeHtml(r.reporterName)}` : ''}
+    </div>
+    ${r.staffNotes ? `<div class="muted small" style="margin-top:4px">Staff notes: ${escapeHtml(r.staffNotes)}</div>` : ''}
+  `;
+  
+  // Add action buttons for pending reports
+  if (r.status === 'pending') {
+    const actions = document.createElement('div');
+    actions.className = 'report-actions';
+    
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'btn';
+    dismissBtn.textContent = 'Dismiss';
+    dismissBtn.onclick = () => handleReportAction(r.id, 'dismiss');
+    
+    const reviewBtn = document.createElement('button');
+    reviewBtn.className = 'btn warning';
+    reviewBtn.textContent = 'Mark Reviewed';
+    reviewBtn.onclick = () => handleReportAction(r.id, 'reviewed');
+    
+    const rejectBtn = document.createElement('button');
+    rejectBtn.className = 'btn danger';
+    rejectBtn.textContent = 'Remove Post';
+    rejectBtn.onclick = () => handleReportAction(r.id, 'action', 'reject');
+    
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'btn primary';
+    viewBtn.textContent = 'View Post';
+    viewBtn.onclick = () => viewReportedPost(r);
+    
+    actions.appendChild(viewBtn);
+    actions.appendChild(dismissBtn);
+    actions.appendChild(reviewBtn);
+    actions.appendChild(rejectBtn);
+    card.appendChild(actions);
+  }
+  
+  return card;
+}
+
+async function handleReportAction(reportId, actionType, postAction) {
+  const staffNotes = prompt('Add staff notes (optional):') || '';
+  
+  try {
+    let url, body;
+    if (actionType === 'action') {
+      url = `${API_BASE}/moderation/reports/${reportId}/action`;
+      body = JSON.stringify({ action: postAction || 'reject', staffNotes });
+    } else {
+      url = `${API_BASE}/moderation/reports/${reportId}/${actionType}`;
+      body = JSON.stringify({ staffNotes });
+    }
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body
+    });
+    
+    if (res.status === 401) {
+      alert('Admin session required');
+      return;
+    }
+    
+    const result = await res.json();
+    if (res.ok) {
+      loadReports();
+      loadModerationStats();
+    } else {
+      alert('Action failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (e) {
+    console.error('Report action failed:', e);
+    alert('Action failed');
+  }
+}
+
+function viewReportedPost(report) {
+  // Open a simple modal or alert with post details (without exposing sensitive email info)
+  const details = `
+Post: ${report.postTitle || 'Untitled'}
+Category: ${report.postCategory || 'N/A'}
+Description: ${report.postDescription || 'N/A'}
+Media: ${report.mediaUrl || 'N/A'}
+Author: ${report.postAuthorName || 'Unknown'}
+
+Report Reason: ${report.reasonCategory || 'other'}
+Reporter Notes: ${report.reason || 'None'}
+  `.trim();
+  
+  alert(details);
+}
+
+// Load moderation statistics
+async function loadModerationStats() {
+  const statsBox = qs('#moderationStats');
+  if (!statsBox) return;
+  
+  statsBox.innerHTML = '<div class="muted">Loading stats...</div>';
+  
+  try {
+    const res = await fetch(`${API_BASE}/moderation/stats`, { credentials: 'same-origin' });
+    if (res.status === 401) {
+      statsBox.innerHTML = '<div class="muted">Admin session required</div>';
+      return;
+    }
+    const stats = await res.json();
+    
+    const pending = stats.byStatus?.pending || 0;
+    const reviewed = stats.byStatus?.reviewed || 0;
+    const dismissed = stats.byStatus?.dismissed || 0;
+    const actioned = stats.byStatus?.actioned || 0;
+    const escalatedPosts = stats.escalatedPosts || 0;
+    
+    statsBox.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">${pending}</div>
+          <div class="stat-label">Pending Reports</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${escalatedPosts}</div>
+          <div class="stat-label">Escalated Posts</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${reviewed}</div>
+          <div class="stat-label">Reviewed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${dismissed}</div>
+          <div class="stat-label">Dismissed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${actioned}</div>
+          <div class="stat-label">Actioned</div>
+        </div>
+      </div>
+      <h4 style="margin-top:16px">Pending by Category</h4>
+      <div class="stats-grid">
+        ${Object.entries(stats.pendingByCategory || {}).map(([cat, count]) => `
+          <div class="stat-card">
+            <div class="stat-value">${count}</div>
+            <div class="stat-label">${cat.charAt(0).toUpperCase() + cat.slice(1)}</div>
+          </div>
+        `).join('') || '<div class="muted">No pending reports</div>'}
+      </div>
+    `;
+  } catch (e) {
+    console.error('Failed to load stats:', e);
+    statsBox.innerHTML = '<div class="muted">Error loading stats</div>';
+  }
+}
+
+// Filter change handlers
+const filterStatus = qs('#filterStatus');
+const filterCategory = qs('#filterCategory');
+const refreshReports = qs('#refreshReports');
+
+if (filterStatus) filterStatus.addEventListener('change', loadReports);
+if (filterCategory) filterCategory.addEventListener('change', loadReports);
+if (refreshReports) refreshReports.addEventListener('click', loadReports);
+
+// Initialize categories on page load
+loadReportCategories();
+
+// ========================================
+// End Staff Moderation UI
+// ========================================
 
 // Parent: pending posts for linked children
 async function loadParentPending(){

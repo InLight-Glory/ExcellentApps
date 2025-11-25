@@ -80,7 +80,7 @@
         </section>
 
         <section id="admin" class="view panel hidden">
-          <div class="panel-header"><h3>Admin — Pending</h3></div>
+          <div class="panel-header"><h3>Admin — Moderation</h3></div>
           <div id="adminLogin">
             <form id="adminLoginForm" class="form">
               <label>Admin token<br><input id="adminTokenInput" name="adminToken" type="text" placeholder="admin token" required /></label>
@@ -88,7 +88,42 @@
             </form>
             <div id="adminLoginMsg" class="muted small" style="margin-top:8px;"></div>
           </div>
-          <div id="pendingList" style="margin-top:12px"></div>
+          
+          <!-- Admin Tabs -->
+          <div id="adminTabs" class="admin-tabs" style="margin-top:12px;display:none">
+            <button id="tabPending" class="tab-btn active">Pending Posts</button>
+            <button id="tabReports" class="tab-btn">Flagged Reports</button>
+            <button id="tabStats" class="tab-btn">Stats</button>
+          </div>
+          
+          <!-- Pending Posts Tab -->
+          <div id="pendingTab" class="tab-content">
+            <div id="pendingList" style="margin-top:12px"></div>
+          </div>
+          
+          <!-- Flagged Reports Tab -->
+          <div id="reportsTab" class="tab-content hidden">
+            <div id="reportFilters" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">
+              <select id="filterStatus" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="pending" selected>Pending</option>
+                <option value="reviewed">Reviewed</option>
+                <option value="dismissed">Dismissed</option>
+                <option value="actioned">Actioned</option>
+              </select>
+              <select id="filterCategory" class="filter-select">
+                <option value="">All Categories</option>
+              </select>
+              <button id="refreshReports" class="btn">Refresh</button>
+            </div>
+            <div id="reportsList"></div>
+          </div>
+          
+          <!-- Stats Tab -->
+          <div id="statsTab" class="tab-content hidden">
+            <div id="moderationStats" style="margin-top:12px"></div>
+          </div>
+          
           <div style="margin-top:10px"><button id="resetDemoBtn" class="btn">Reset demo posts</button></div>
         </section>
       </aside>
