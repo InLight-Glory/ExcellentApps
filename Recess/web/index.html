@@ -31,6 +31,22 @@
     </header>
 
     <main class="layout">
+      <!-- Left vertical nav for TikTok-style view -->
+      <nav id="leftNav" class="left-nav hidden" aria-hidden="true">
+        <div class="ln-top">
+          <div class="ln-logo">Recess</div>
+        </div>
+        <ul class="ln-links">
+          <li class="active"><button class="ln-btn">For You</button></li>
+          <li><button class="ln-btn">Shop</button></li>
+          <li><button class="ln-btn">Explore</button></li>
+          <li><button class="ln-btn">Following</button></li>
+          <li><button class="ln-btn">Messages</button></li>
+        </ul>
+        <div class="ln-bottom">
+          <button class="ln-btn">Profile</button>
+        </div>
+      </nav>
       <section id="feed" class="view panel">
         <div class="panel-header"><h2>Feed</h2><div id="feedStatus" class="muted"></div></div>
         <div id="feedList" class="cards"></div>

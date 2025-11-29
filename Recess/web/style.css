@@ -9,6 +9,41 @@
 }
 *{box-sizing:border-box}
 body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111;margin:0;padding:18px;display:flex;flex-direction:column;align-items:center}
+
+/* TikTok-style dark mode for swipe feed */
+body.tiktok-mode{background:#000;padding:0}
+body.tiktok-mode .site-header, body.tiktok-mode .layout, body.tiktok-mode .site-footer, body.tiktok-mode .panel{display:none}
+
+/* Left nav */
+.left-nav{position:fixed;left:0;top:0;height:100vh;width:110px;background:#030405;color:#fff;padding:18px;display:flex;flex-direction:column;align-items:center;z-index:10010}
+.left-nav.hidden{display:none}
+.left-nav .ln-logo{font-weight:700;margin-bottom:18px}
+.left-nav .ln-links{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;width:100%}
+.left-nav .ln-links li{width:100%;text-align:center}
+.left-nav .ln-btn{width:100%;background:transparent;border:none;color:#cbd5e1;padding:8px;border-radius:8px;cursor:pointer}
+.left-nav .ln-links li.active .ln-btn{background:#111827;color:#fff}
+.left-nav .ln-bottom{margin-top:auto;width:100%;text-align:center}
+
+/* Center the swipe container and make it narrow like TikTok portrait */
+.swipe-view{background:linear-gradient(180deg,#000,#000);}
+.swipe-view .swipe-container{max-width:420px;height:90vh;border-radius:16px}
+.swipe-item img,.swipe-item video{border-radius:12px}
+
+/* Right action pillar: move controls closer to the video and style as circular pills */
+.swipe-actions{position:fixed;right:calc(50% - 210px);top:40%;display:flex;flex-direction:column;gap:12px;z-index:10020}
+.swipe-actions .btn{width:56px;height:56px;border-radius:999px;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+.swipe-actions .btn.report{background:rgba(220,38,38,0.95);color:white}
+.swipe-actions .btn:not(.report){background:rgba(255,255,255,0.06);color:white;border:1px solid rgba(255,255,255,0.06)}
+.swipe-like-count{margin-top:4px;color:rgba(255,255,255,0.85);font-size:0.85rem;text-align:center}
+
+/* When window is narrow, adjust right pillar position to fixed right side */
+@media (max-width:900px){
+  .swipe-actions{right:18px}
+  .left-nav{display:none}
+  body.tiktok-mode{padding-top:0}
+}
+
+/* Header & Nav */
 .site-header{width:100%;max-width:var(--max-width);display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand h1{margin:0;font-size:1.3rem}
@@ -16,6 +51,8 @@ body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111
 .main-nav{display:flex;gap:8px}
 .nav-btn{background:transparent;border:1px solid #e6eefc;padding:8px 12px;border-radius:8px;cursor:pointer}
 .nav-btn:hover{background:#eef6ff}
+
+/* Layout */
 .layout{width:100%;max-width:var(--max-width);display:grid;grid-template-columns:1fr 340px;gap:18px}
 .panel{background:var(--card);border-radius:var(--radius);padding:14px;box-shadow:0 6px 18px rgba(16,24,40,0.06)}
 .sidebar .panel{margin-bottom:12px}
@@ -23,12 +60,25 @@ body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111
 .muted{color:var(--muted)}
 .small{font-size:0.85rem}
 
+/* Utilities from second block */
+.hidden { display:none !important; }
+.view { padding: 0 }
+
+/* Cards / Feed */
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
 .card{background:linear-gradient(180deg,#fff,#fbfdff);border-radius:12px;padding:12px;border:1px solid #eef3ff}
 .card img, .card video{max-width:100%;border-radius:8px;display:block;margin-bottom:8px}
 .card h3{margin:0 0 6px 0;font-size:1rem}
 .card .meta{display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:var(--muted);margin-bottom:8px}
 .card .actions{display:flex;gap:8px}
+
+/* Posts (Admin/Pending list style) */
+.post { border:1px solid #ddd; padding:8px; margin-bottom:12px; border-radius:6px; }
+.post video, .post img { max-width:100%; height:auto; display:block; margin-bottom:8px; }
+.admin-actions { display:flex; gap:8px; margin-top: 8px; }
+.admin-actions button { margin-right:6px; }
+
+/* Buttons & Forms */
 .btn{padding:8px 10px;border-radius:8px;border:1px solid #dbeafe;background:white;cursor:pointer}
 .btn.primary{background:var(--primary);color:white;border-color:transparent}
 .form label{display:block;margin-bottom:10px}
@@ -37,25 +87,12 @@ body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#111
 
 .site-footer{max-width:var(--max-width);width:100%;text-align:center;margin-top:18px;color:var(--muted);padding:8px}
 
-@media (max-width:900px){
-  .layout{grid-template-columns:1fr}
-  .sidebar{order:2}
-}
-* { box-sizing: border-box; }
-body { font-family: system-ui,Segoe UI,Roboto,Arial; margin: 0; padding: 0; }
-header { background:#0b74de; color:white; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
-header h1 { margin:0; font-size:18px; }
-nav button { margin-left:8px; padding:6px 10px; border-radius:4px; border:none; cursor:pointer; }
-.view { padding:16px; }
-.hidden { display:none; }
-.post { border:1px solid #ddd; padding:8px; margin-bottom:12px; border-radius:6px; }
-.post video, .post img { max-width:100%; height:auto; display:block; margin-bottom:8px; }
-.actions { display:flex; gap:8px; }
-.admin-actions button { margin-right:6px; }
-
 /* Landing / Entry overlay */
-.entry-overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(4,11,32,0.6),rgba(4,11,32,0.4));display:flex;align-items:center;justify-content:center;z-index:9999}
+.entry-overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(4,11,32,0.6),rgba(4,11,32,0.4));display:flex;align-items:center;justify-content:center;z-index:9999;pointer-events:none}
 .entry-panel{background:var(--card);padding:28px;border-radius:14px;max-width:720px;width:92%;text-align:center;box-shadow:0 20px 60px rgba(2,6,23,0.45)}
+/* Allow interactions inside the panel while letting clicks pass through the overlay background
+  so header nav (e.g. Swipe button) remains clickable while the overlay is visible. */
+.entry-panel{pointer-events:auto}
 .entry-panel .entry-brand h1{margin:0;font-size:2rem}
 .entry-panel .tagline{color:var(--muted);margin-top:6px}
 .entry-ctas{margin-top:18px;display:flex;flex-direction:column;gap:10px;align-items:center}
@@ -84,3 +121,14 @@ nav button { margin-left:8px; padding:6px 10px; border-radius:4px; border:none; 
 .swipe-actions .btn{min-width:48px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.06);color:white}
 .swipe-actions .btn.report{background:rgba(220,38,38,0.9)}
 .swipe-like-count{display:block;text-align:center;margin-top:6px;color:rgba(255,255,255,0.8)}
+
+/* Swipe navigation buttons (prev/next arrows) */
+.swipe-nav-btn{position:absolute;left:50%;transform:translateX(-50%);width:56px;height:56px;border-radius:999px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);color:white;font-size:1.6rem;cursor:pointer;z-index:10100;display:flex;align-items:center;justify-content:center;transition:background 0.15s}
+.swipe-nav-btn:hover{background:rgba(255,255,255,0.22)}
+.swipe-nav-prev{top:12px}
+.swipe-nav-next{bottom:12px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{order:2}
+}

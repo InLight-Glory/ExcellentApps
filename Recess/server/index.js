@@ -239,33 +239,15 @@ db.serialize(() => {
         const childId = childRow ? childRow.id : 0;
         const now = Date.now();
         const demos = [
-          {
-            title: 'Lemon battery — simple science at home',
-            description: 'Make a small battery using lemons, copper and zinc. Great for a classroom demo!',
-            mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-            mediaType: 'youtube',
-            category: 'Science',
-            status: 'approved',
-            createdAt: now - 1000 * 60 * 60 * 24
-          },
-          {
-            title: 'Color-changing milk experiment',
-            description: 'A colorful surface-tension experiment using milk and soap.',
-            mediaUrl: 'https://www.youtube.com/watch?v=QH2-TGUlwu4',
-            mediaType: 'youtube',
-            category: 'Chemistry',
-            status: 'approved',
-            createdAt: now - 1000 * 60 * 60 * 12
-          },
-          {
-            title: 'Paper rocket launch',
-            description: 'Build a small paper rocket and learn about thrust.',
-            mediaUrl: 'https://via.placeholder.com/640x360.png?text=Paper+Rocket',
-            mediaType: 'image',
-            category: 'Engineering',
-            status: 'approved',
-            createdAt: now - 1000 * 60 * 60 * 6
-          }
+          { title: 'Short: O86CweicQ6k', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/O86CweicQ6k', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 24 },
+          { title: 'Short: j8zSyfDzdE0', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/j8zSyfDzdE0', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 20 },
+          { title: 'Short: hffbhcDepMM', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/hffbhcDepMM', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 16 },
+          { title: 'Short: piTln4g_tYo', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/piTln4g_tYo', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 12 },
+          { title: 'Short: pUozfzl-RR4', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/pUozfzl-RR4', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 8 },
+          { title: 'Short: xsKqEsGEmQw', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/xsKqEsGEmQw', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 6 },
+          { title: 'Short: HJrq5P4Tjco', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/HJrq5P4Tjco', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 4 },
+          { title: 'Short: DeIVhcIo1V4', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/DeIVhcIo1V4', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 2 },
+          { title: 'Short: 87wbUWUF68Y', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/87wbUWUF68Y', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 30 }
         ];
         const stmt = db.prepare('INSERT INTO posts (userId, title, description, mediaUrl, mediaType, category, tags, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         demos.forEach(d => {
@@ -327,6 +309,36 @@ app.get('/api/posts', (req, res) => {
   });
 });
 
+// API: feed (paginated) - used by swipe/fullscreen pager
+app.get('/api/feed', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page || '1'));
+  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '10')));
+  const offset = (page - 1) * limit;
+  const sql = "SELECT * FROM posts WHERE status='approved' ORDER BY createdAt DESC LIMIT ? OFFSET ?";
+  db.all(sql, [limit, offset], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    // get total count to indicate hasMore
+    db.get("SELECT COUNT(1) as cnt FROM posts WHERE status='approved'", [], (e, countRow) => {
+      if (e) return res.status(500).json({ error: e.message });
+      const total = (countRow && countRow.cnt) ? countRow.cnt : 0;
+      res.json({ posts: rows, hasMore: offset + rows.length < total });
+    });
+  });
+});
+
+// API: paginated feed for swipe view (used by web/app.js)
+app.get('/api/feed', (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page || '1', 10));
+  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '10', 10)));
+  const offset = (page - 1) * limit;
+  const sql = "SELECT * FROM posts WHERE status='approved' ORDER BY createdAt DESC LIMIT ? OFFSET ?";
+  db.all(sql, [limit, offset], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    const hasMore = (rows && rows.length === limit);
+    res.json({ posts: rows || [], hasMore });
+  });
+});
+
 // API: create post (multipart: media)
 app.post('/api/posts', upload.single('media'), (req, res) => {
   const { title = '', description = '', category = '', tags = '', childEmail = '', mediaUrl: bodyMediaUrl = '' } = req.body;
@@ -337,8 +349,14 @@ app.post('/api/posts', upload.single('media'), (req, res) => {
     mediaUrl = `/uploads/${path.basename(file.path)}`;
     mediaType = file.mimetype.startsWith('video') ? 'video' : 'image';
   } else if (bodyMediaUrl) {
-    // infer from extension
-    mediaType = (bodyMediaUrl.match(/\.(mp4|webm|ogg)$/i)) ? 'video' : 'image';
+    // detect YouTube links first, then common video extensions, otherwise treat as image
+    if (/(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(bodyMediaUrl)) {
+      mediaType = 'youtube';
+    } else if (bodyMediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
+      mediaType = 'video';
+    } else {
+      mediaType = 'image';
+    }
   } else {
     return res.status(400).json({ error: 'media file required or provide mediaUrl in body' });
   }
@@ -521,9 +539,15 @@ app.post('/api/admin/reset-demo', requireAdmin, (req, res) => {
         const kidId = kidRow ? kidRow.id : 0;
         const now = Date.now();
         const demos = [
-          { title: 'Lemon battery — simple science at home', description: 'Make a small battery using lemons, copper and zinc. Great for a classroom demo!', mediaUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', mediaType: 'youtube', category: 'Science', status: 'approved', createdAt: now - 1000 * 60 * 60 * 24 },
-          { title: 'Color-changing milk experiment', description: 'A colorful surface-tension experiment using milk and soap.', mediaUrl: 'https://www.youtube.com/watch?v=QH2-TGUlwu4', mediaType: 'youtube', category: 'Chemistry', status: 'approved', createdAt: now - 1000 * 60 * 60 * 12 },
-          { title: 'Paper rocket launch', description: 'Build a small paper rocket and learn about thrust.', mediaUrl: 'https://via.placeholder.com/640x360.png?text=Paper+Rocket', mediaType: 'image', category: 'Engineering', status: 'approved', createdAt: now - 1000 * 60 * 60 * 6 }
+          { title: 'Short: O86CweicQ6k', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/O86CweicQ6k', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 24 },
+          { title: 'Short: j8zSyfDzdE0', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/j8zSyfDzdE0', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 20 },
+          { title: 'Short: hffbhcDepMM', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/hffbhcDepMM', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 16 },
+          { title: 'Short: piTln4g_tYo', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/piTln4g_tYo', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 12 },
+          { title: 'Short: pUozfzl-RR4', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/pUozfzl-RR4', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 8 },
+          { title: 'Short: xsKqEsGEmQw', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/xsKqEsGEmQw', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 6 },
+          { title: 'Short: HJrq5P4Tjco', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/HJrq5P4Tjco', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 4 },
+          { title: 'Short: DeIVhcIo1V4', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/DeIVhcIo1V4', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 60 * 2 },
+          { title: 'Short: 87wbUWUF68Y', description: 'Demo short video', mediaUrl: 'https://www.youtube.com/shorts/87wbUWUF68Y', mediaType: 'youtube', category: 'Shorts', status: 'approved', createdAt: now - 1000 * 60 * 30 }
         ];
         const stmt = db.prepare('INSERT INTO posts (userId, title, description, mediaUrl, mediaType, category, tags, status, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         demos.forEach(d => {

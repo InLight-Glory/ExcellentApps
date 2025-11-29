@@ -1,68 +1,63 @@
-# Recess Roadmap — Beta-focused
+# Recess Roadmap — Beta-focused (updated)
 
-This roadmap captures the current priorities as we work toward a working beta release (an end-to-end parent/child posting and moderation flow, plus a redesigned landing/feed experience). Use this file to track status, owners, and acceptance criteria for the beta.
+This file captures the priorities and current status as we move toward a working beta. It reflects recent progress on the TikTok-style swipe feed, demo Shorts seeding, and the client/server changes made in the `copilot/redesign-landing-page` branch.
 
 How to use
 - Mark items as `TODO`, `IN-PROGRESS`, or `DONE` and add `owner` + `ETA` when you pick a task.
-- Beta acceptance criteria are listed below; prioritize items that unblock them.
+- Use the Acceptance Criteria to decide what to prioritize for the beta.
 
-Beta Goal (minimum):
-- Deliver a deployable app where a child can create media posts (browser), a parent can approve them, content appears in the public feed, and staff can escalate or moderate from an admin UI. The landing page should demonstrate the new feed (TikTok-style/video-first) and basic analytics.
+Beta Goal (minimum)
+- Deliver a deployable app where a child can create media posts, a parent can approve them, approved content appears in a public, mobile-first feed, and staff can moderate/escalate content. The landing page will showcase the new continuous vertical (swipe) feed.
+
+Recent progress (what's done in this session)
+- **DONE:** Add default YouTube Shorts demo seeds and `/api/admin/reset-demo` to force-reset them (9 Shorts seeded).
+- **DONE:** Server: detect YouTube URLs in `POST /api/posts` and set `mediaType: 'youtube'`.
+- **DONE:** Server: add paginated `GET /api/feed` endpoint used by the swipe pager.
+- **DONE:** Client: implement swipe view with YouTube iframe embedding (autoplay muted) and seed-driven demo mode.
+- **DONE:** Client: fixed entry overlay blocking header nav (overlay background click-through).
+- **DONE:** Client: added wheel, pointer drag, and touch handlers to advance swipe items; added visible Prev/Next nav buttons as a fallback.
 
 Current status (high-level)
-- [IN-PROGRESS] Landing page redesign: TikTok-style video feed and responsive card feed — branch: `copilot/redesign-landing-page` (PR: redesign landing page with TikTok-style video feed).
-- [IN-PROGRESS] UI polish: in-page parent login, upload form improvements, client-side preview and progress indicator.
-- [TODO] Server persistence to production storage (migrate `uploads/` to cloud storage and CDN).
-- [TODO] Admin moderation UI: in-page admin login, escalations, bulk actions.
-- [DONE] Basic integration script: `test/run-tests.js` covers parent login → create post → parent approve → feed visibility → report → admin escalate.
+- [IN-PROGRESS] Landing page redesign: TikTok-style swipe feed integrated into `web/app.js` and `web/index.html` (branch: `copilot/redesign-landing-page`).
+- [IN-PROGRESS] UX tweaks: autoplay behavior for Shorts, click/scroll navigation, overlay behavior.
+- [DONE] Demo seeds: nine Shorts available and returned by `/api/feed`.
+- [TODO] Polish: smooth transitions/animations between swipe items; avoid iframe input swallowing gestures in all browsers.
+- [TODO] Tests: add automated UI checks for swipe behavior and autoplay (headless/browser tests).
 
-Beta milestones
-- Milestone B1 — Core flows (1–2 weeks)
-  - Implement and QA: browser upload with `childEmail`, parent approval flow (in-page or link), feed visibility tests.
-  - Acceptance: test script passes and demoable on local & staging.
+Beta milestones (revised)
+- Milestone B1 — Core flows (complete/basic): child upload → parent approval → approved posts visible in feed. Acceptance: basic end-to-end flow works locally.
+- Milestone B2 — Feed & UX (near complete): continuous vertical swipe feed with autoplay Shorts and navigation. Acceptance: feed shows demo posts, wheel/drag/swipe advances items, navigation accessible.
+- Milestone B3 — Admin & moderation: admin login, moderation queue, escalate/delete/restore actions. Acceptance: staff flows function and create audit records.
+- Milestone B4 — Ops & deployment: media storage, Dockerfile, CI. Acceptance: staging deploy with persistent media storage.
 
-- Milestone B2 — Feed & landing (1 week)
-  - Complete landing redesign with continuous vertical feed (video-first) and responsive layout.
-  - Acceptance: landing shows demo posts, smooth play/pause on scroll, accessible controls.
-
-- Milestone B3 — Admin & moderation (1 week)
-  - Ship in-page admin login, moderation queue with escalated items, and bulk actions.
-  - Acceptance: staff can mark, delete, or restore posts; escalations surface metadata.
-
-- Milestone B4 — Ops & deployment (1–2 weeks)
-  - Move media to cloud storage, add Dockerfile, basic deployment docs, and CI checks.
-  - Acceptance: app deploys to a staging host, media served from storage, CI runs tests on push.
-
-Acceptance criteria for Beta
-- Child-to-parent flow: browser upload with `childEmail` and preview, upload completes with progress, and parent is notified (email or in-page) and can approve.
-- Feed: approved posts appear in the public feed consistently and are playable on the landing page; feed supports video-first UX.
-- Moderation: admin can view escalated items and take actions (delete/hide/restore). Audit entries created for actions.
-- Tests: `test/run-tests.js` passes in CI; basic end-to-end smoke tests are in place.
-- Deployment: Dockerfile and simple deployment steps documented; media served from persistent storage.
+Acceptance criteria for Beta (concise)
+- Child-to-parent flow: create post (file or URL) with `childEmail`, parent can approve or reject; approved posts appear in feed.
+- Feed UX: approved posts appear in the swipe feed; scrolling/dragging/keyboard and visible nav buttons change items; YouTube Shorts autoplay muted in swipe view.
+- Moderation: admin can view escalated items and perform actions; moderation actions are recorded.
+- Tests & CI: integration tests run on PRs; basic UI checks for swipe navigation.
 
 Immediate tasks (next sprint)
-- [IN-PROGRESS] Complete landing page video feed integration — owner: frontend — ETA: 4 days
-- [IN-PROGRESS] Wire upload form to backend including `childEmail` and preview — owner: frontend — ETA: 3 days
-- [TODO] Add admin login UI and moderation queue — owner: ops/frontend — ETA: 1 week
-- [TODO] Add cloud storage adapter & migration for `uploads/` — owner: backend — ETA: 1 week
-- [TODO] Add Dockerfile + staging deploy script — owner: devops — ETA: 1 week
+- [IN-PROGRESS] Polish swipe transitions & stabilize autoplay handling across browsers — owner: frontend — ETA: 3 days
+- [IN-PROGRESS] Improve iframe gesture handling and fallbacks (nav buttons + keyboard) — owner: frontend — ETA: 2 days
+- [TODO] Add headless/browser tests for swipe navigation and feed rendering — owner: qa — ETA: 1 week
+- [TODO] Add Dockerfile + minimal GitHub Actions CI to run tests and `test/run-tests.js` — owner: devops — ETA: 1 week
+- [TODO] Move `uploads/` to cloud storage (S3/compatible) + CDN — owner: backend — ETA: 1–2 weeks
 
 Testing and CI
-- Keep `test/run-tests.js` as the canonical integration test for now.
-- Add a CI pipeline (GitHub Actions) to run lint, `npm test`, and `node test/run-tests.js` on PRs targeting `main` and `copilot/redesign-landing-page`.
+- Keep `test/run-tests.js` as the canonical integration smoke test.
+- Add a GitHub Actions workflow to run lint, `npm test`, and `node test/run-tests.js` on PRs targeting `main` and feature branches.
 
-Security, privacy & legal
+Security, privacy & compliance
 - [TODO] Remove secrets from `config.json` and use environment variables / secrets manager.
-- [TODO] Plan COPPA & privacy compliance for beta launch; prioritize transparent parent-consent flows.
+- [TODO] Document parent-consent flow and plan COPPA/privacy compliance before public beta.
 
 Governance & contributions
-- Add your initials when you pick a task (e.g., `- [IN-PROGRESS] Foo feature — owner: AV — ETA: 2025-12-05`).
-- For larger items (auth, storage migration) we'll break work into smaller PR-sized tasks and assign owners.
+- When you pick a task, add your initials and ETA (e.g., `- [IN-PROGRESS] Polish autoplay — owner: VN — ETA: 2025-12-02`).
+- Break larger items (storage migration, CI, auth) into smaller PR-sized tasks.
 
 Next steps (this session)
-- Finish drafting this roadmap (done).
-- Apply the updated file to the repo (next).
-- After merge: open issues corresponding to the immediate tasks and create PR templates for B1–B4 work.
+- ROADMAP.md updated to reflect the recent work and current priorities.
+- If you want, I can open issues for the immediate tasks and create a minimal `Dockerfile` and GitHub Actions workflow next. Want me to proceed with that?
 
---
-If you want, I can also open issues for the immediate tasks and create the Dockerfile + a minimal GitHub Actions workflow next. Want me to proceed with that?
+---
+Updated: 2025-11-29 — reflects demo seeds, server feed, YouTube detection, swipe navigation handlers, and immediate polish tasks.

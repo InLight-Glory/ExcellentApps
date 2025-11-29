@@ -1,5 +1,5 @@
 // Cleaned up app.js with admin token support
-const qs = (s, el=document) => el.querySelector(s);
+const qs = (s, el = document) => el.querySelector(s);
 const $feedList = qs('#feedList');
 
 const API_BASE = '/api';
@@ -12,17 +12,17 @@ document.getElementById('btn-admin').addEventListener('click', () => showAdmin()
 const btnUserNav = document.getElementById('btn-user');
 if (btnUserNav) btnUserNav.addEventListener('click', () => show('user'));
 
-function show(id){
+function show(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-  qs('#'+id).classList.remove('hidden');
+  qs('#' + id).classList.remove('hidden');
   if (id === 'feed') loadFeed();
 }
 
-function getAdminToken(){
+function getAdminToken() {
   return localStorage.getItem('recess_admin_token') || null;
 }
 
-async function promptForAdminToken(){
+async function promptForAdminToken() {
   let token = getAdminToken();
   if (!token) {
     token = prompt('Enter admin token (ask the server owner).\nYou can find it in server/config.json (change it there).');
@@ -31,7 +31,7 @@ async function promptForAdminToken(){
   return token;
 }
 
-async function showAdmin(){
+async function showAdmin() {
   // in-page admin login: prefer stored token
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
   qs('#admin').classList.remove('hidden');
@@ -58,7 +58,7 @@ if (adminLoginForm) {
     const msg = qs('#adminLoginMsg');
     if (!token) { msg.textContent = 'Enter token'; return; }
     // send to server to set an HttpOnly cookie for admin session
-    fetch(`${API_BASE}/admin/login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ token }) })
+    fetch(`${API_BASE}/admin/login`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }) })
       .then(r => r.json())
       .then(b => {
         if (b && b.ok) {
@@ -74,7 +74,7 @@ if (adminLoginForm) {
 }
 const adminLogoutBtn = qs('#adminLogout');
 if (adminLogoutBtn) adminLogoutBtn.addEventListener('click', async () => {
-  try { await fetch(`${API_BASE}/admin/logout`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}
+  try { await fetch(`${API_BASE}/admin/logout`, { method: 'POST', credentials: 'same-origin' }); } catch (e) { }
   localStorage.removeItem('recess_admin_token');
   alert('Admin token cleared');
   if (adminLoginForm) adminLoginForm.style.display = '';
@@ -87,7 +87,7 @@ if (resetDemoBtn) resetDemoBtn.addEventListener('click', async () => {
   // rely on server cookie for admin auth; ensure credentials are sent
   resetDemoBtn.textContent = 'Resetting...';
   const res = await fetch(`${API_BASE}/admin/reset-demo`, { method: 'POST', credentials: 'same-origin' });
-  const body = await res.json().catch(()=>({}));
+  const body = await res.json().catch(() => ({}));
   resetDemoBtn.textContent = 'Reset demo posts';
   if (res.status === 401) return alert('Not authorized. Please log in as admin via the Admin panel.');
   if (res.ok) { alert('Demo posts reset'); loadFeed(); } else alert('Reset failed: ' + (body.error || JSON.stringify(body)));
@@ -96,7 +96,7 @@ if (resetDemoBtn) resetDemoBtn.addEventListener('click', async () => {
 // Profile picture placeholder: store locally as data URL
 const profilePic = qs('#profilePic');
 const profilePicInput = qs('#profilePicInput');
-function loadProfilePic(){
+function loadProfilePic() {
   const data = localStorage.getItem('recess_profile_pic');
   if (data && profilePic) profilePic.innerHTML = `<img src="${data}" style="width:100%;height:100%;object-fit:cover;border-radius:999px"/>`;
 }
@@ -115,7 +115,7 @@ if (profilePicInput) {
 }
 loadProfilePic();
 
-function getParentToken(){
+function getParentToken() {
   return localStorage.getItem('recess_parent_jwt') || null;
 }
 
@@ -136,24 +136,24 @@ function renderUserInfo(info) {
     box.innerHTML = '<div class="muted">Not signed in</div>';
     return;
   }
-  box.innerHTML = `<div>Signed in as <strong>${info.displayName||info.role}</strong> (${info.role})</div><div style="margin-top:8px"><button id="userDoLogout" class="btn">Logout</button></div>`;
+  box.innerHTML = `<div>Signed in as <strong>${info.displayName || info.role}</strong> (${info.role})</div><div style="margin-top:8px"><button id="userDoLogout" class="btn">Logout</button></div>`;
   const btn = qs('#userDoLogout');
   if (btn) btn.addEventListener('click', async () => {
-    try { await fetch(`${API_BASE}/users/logout`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}
+    try { await fetch(`${API_BASE}/users/logout`, { method: 'POST', credentials: 'same-origin' }); } catch (e) { }
     localStorage.removeItem('recess_user_jwt');
     renderUserInfo(null);
     alert('Signed out');
   });
 }
 
-async function promptForParentLogin(){
+async function promptForParentLogin() {
   // prompt for email/password and call login endpoint
   const email = prompt('Parent email: (e.g. parent@local)');
   if (!email) return null;
   const password = prompt('Parent password:');
   if (!password) return null;
   try {
-    const res = await fetch(`${API_BASE}/parents/login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+    const res = await fetch(`${API_BASE}/parents/login`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     if (res.status !== 200) {
       alert('Login failed');
       return null;
@@ -169,7 +169,7 @@ async function promptForParentLogin(){
   return null;
 }
 
-async function showParent(){
+async function showParent() {
   let token = getParentToken();
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
   qs('#parent').classList.remove('hidden');
@@ -199,9 +199,9 @@ if (parentLoginForm) {
     const msg = qs('#parentLoginMsg');
     msg.textContent = 'Logging in...';
     try {
-      const res = await fetch(`${API_BASE}/parents/login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+      const res = await fetch(`${API_BASE}/parents/login`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
       if (res.status !== 200) {
-        const body = await res.json().catch(()=>({}));
+        const body = await res.json().catch(() => ({}));
         msg.textContent = body.error || 'Login failed';
         return;
       }
@@ -232,8 +232,8 @@ if (userLoginForm) {
     const msg = qs('#userMsg');
     msg.textContent = 'Logging in...';
     try {
-      const res = await fetch(`${API_BASE}/users/login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-      const body = await res.json().catch(()=>({}));
+      const res = await fetch(`${API_BASE}/users/login`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) { msg.textContent = body.error || 'Login failed'; return; }
       if (body.token) localStorage.setItem('recess_user_jwt', body.token);
       msg.textContent = 'Logged in';
@@ -245,7 +245,7 @@ if (userLoginForm) {
 
 const userLogoutBtn = qs('#userLogout');
 if (userLogoutBtn) userLogoutBtn.addEventListener('click', async () => {
-  try { await fetch(`${API_BASE}/users/logout`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}
+  try { await fetch(`${API_BASE}/users/logout`, { method: 'POST', credentials: 'same-origin' }); } catch (e) { }
   localStorage.removeItem('recess_user_jwt');
   renderUserInfo(null);
   alert('Signed out');
@@ -256,7 +256,7 @@ loadSession().then(s => { if (s) renderUserInfo(s); });
 
 const parentLogoutBtn = qs('#parentLogout');
 if (parentLogoutBtn) parentLogoutBtn.addEventListener('click', async () => {
-  try { await fetch(`${API_BASE}/parents/logout`, { method: 'POST', credentials: 'same-origin' }); } catch(e){}
+  try { await fetch(`${API_BASE}/parents/logout`, { method: 'POST', credentials: 'same-origin' }); } catch (e) { }
   localStorage.removeItem('recess_parent_jwt');
   alert('Parent token cleared');
   if (parentLoginForm) parentLoginForm.style.display = '';
@@ -264,13 +264,13 @@ if (parentLogoutBtn) parentLogoutBtn.addEventListener('click', async () => {
 });
 
 // Feed
-async function loadFeed(){
+async function loadFeed() {
   const status = qs('#feedStatus'); if (status) status.textContent = 'Loading...';
   const res = await fetch(`${API_BASE}/posts`);
   const posts = await res.json();
   const list = $feedList || document.createElement('div');
   list.innerHTML = '';
-  for (const p of posts){
+  for (const p of posts) {
     const el = renderPost(p);
     list.appendChild(el);
   }
@@ -280,7 +280,7 @@ async function loadFeed(){
   if (status) status.textContent = '';
 }
 
-function renderPost(p){
+function renderPost(p) {
   const card = document.createElement('div');
   card.className = 'card';
 
@@ -331,12 +331,12 @@ function renderPost(p){
   }
 
   const actions = document.createElement('div'); actions.className = 'actions';
-  const like = document.createElement('button'); like.className='btn'; like.textContent = `Like (${p.likesCount||0})`;
-  like.onclick = async () => { await fetch(`${API_BASE}/posts/${p.id}/like`, { method:'POST' }); loadFeed(); };
+  const like = document.createElement('button'); like.className = 'btn'; like.textContent = `Like (${p.likesCount || 0})`;
+  like.onclick = async () => { await fetch(`${API_BASE}/posts/${p.id}/like`, { method: 'POST' }); loadFeed(); };
   actions.appendChild(like);
 
   // status badge for dev clarity
-  const status = document.createElement('div'); status.className = 'muted small'; status.style.marginLeft='8px'; status.textContent = p.status || '';
+  const status = document.createElement('div'); status.className = 'muted small'; status.style.marginLeft = '8px'; status.textContent = p.status || '';
   actions.appendChild(status);
 
   card.appendChild(actions);
@@ -358,7 +358,7 @@ if (uploadForm) {
     }
     qs('#uploadResult').textContent = 'Uploading...';
     const res = await fetch('/api/posts', { method: 'POST', body: fd });
-    const data = await res.json().catch(()=>({}));
+    const data = await res.json().catch(() => ({}));
     if (res.ok) qs('#uploadResult').textContent = `Uploaded (id=${data.id}). Status: ${data.status}`;
     else qs('#uploadResult').textContent = `Error: ${data.error || JSON.stringify(data)}`;
     form.reset();
@@ -367,13 +367,13 @@ if (uploadForm) {
   });
 
   const uploadReset = qs('#uploadReset');
-  if (uploadReset) uploadReset.addEventListener('click', () => { uploadForm.reset(); qs('#uploadResult').textContent=''; });
+  if (uploadReset) uploadReset.addEventListener('click', () => { uploadForm.reset(); qs('#uploadResult').textContent = ''; });
 
   // Client-side preview for selected file or media URL
   const mediaFileInput = qs('#uploadMediaFile');
   const mediaUrlInput = qs('#uploadMediaUrl');
   const uploadPreview = qs('#uploadPreview');
-  function clearPreview(){ if (uploadPreview) uploadPreview.innerHTML = ''; }
+  function clearPreview() { if (uploadPreview) uploadPreview.innerHTML = ''; }
   if (mediaFileInput) {
     mediaFileInput.addEventListener('change', (e) => {
       clearPreview();
@@ -400,7 +400,7 @@ if (uploadForm) {
           const url = new URL(v);
           const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v');
           if (id && uploadPreview) uploadPreview.innerHTML = `<iframe width="100%" height="180" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
-        } catch(e) {}
+        } catch (e) { }
       } else if (v.match(/\.(jpg|jpeg|png|gif)$/i)) {
         if (uploadPreview) uploadPreview.innerHTML = `<img src="${v}" style="max-width:100%;border-radius:8px">`;
       }
@@ -409,7 +409,7 @@ if (uploadForm) {
 }
 
 // Admin: pending
-async function loadPending(){
+async function loadPending() {
   // Use cookie-based auth by sending credentials; server will detect recess_admin_token cookie
   let res = await fetch(`${API_BASE}/moderation/pending`, { credentials: 'same-origin' });
   if (res.status === 401) {
@@ -420,24 +420,24 @@ async function loadPending(){
   const box = qs('#pendingList'); box.innerHTML = '';
   if (!posts.length) { box.textContent = 'No pending posts'; return; }
   posts.forEach(p => {
-    const el = document.createElement('div'); el.className='post';
-    el.innerHTML = `<h3>${p.title||'Untitled'}</h3>`;
+    const el = document.createElement('div'); el.className = 'post';
+    el.innerHTML = `<h3>${p.title || 'Untitled'}</h3>`;
     if (p.mediaUrl && /(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(p.mediaUrl)) {
       // embed
-      const embed = (function(u){ try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch(e){ return null; } })(p.mediaUrl);
+      const embed = (function (u) { try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
       if (embed) el.innerHTML += `<iframe width="100%" height="220" src="${embed}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     } else if (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) el.innerHTML += `<video controls src="${p.mediaUrl}"></video>`;
     else if (p.mediaUrl) el.innerHTML += `<img src="${p.mediaUrl}"/>`;
-    const actions = document.createElement('div'); actions.className='admin-actions';
-    const a = document.createElement('button'); a.textContent='Approve'; a.onclick = async () => { await adminAction(p.id, 'approve'); loadPending(); };
-    const r = document.createElement('button'); r.textContent='Reject'; r.onclick = async () => { await adminAction(p.id, 'reject'); loadPending(); };
-    const clear = document.createElement('button'); clear.textContent='Clear token'; clear.onclick = () => { localStorage.removeItem('recess_admin_token'); alert('Token cleared'); };
+    const actions = document.createElement('div'); actions.className = 'admin-actions';
+    const a = document.createElement('button'); a.textContent = 'Approve'; a.onclick = async () => { await adminAction(p.id, 'approve'); loadPending(); };
+    const r = document.createElement('button'); r.textContent = 'Reject'; r.onclick = async () => { await adminAction(p.id, 'reject'); loadPending(); };
+    const clear = document.createElement('button'); clear.textContent = 'Clear token'; clear.onclick = () => { localStorage.removeItem('recess_admin_token'); alert('Token cleared'); };
     actions.appendChild(a); actions.appendChild(r); actions.appendChild(clear); el.appendChild(actions);
     box.appendChild(el);
   });
 }
 
-async function adminAction(id, action){
+async function adminAction(id, action) {
   // Rely on server cookie to authorize admin actions. Send credentials so cookie is included.
   const url = `${API_BASE}/moderation/${id}/${action}`;
   const opts = { method: 'POST', credentials: 'same-origin', headers: {} };
@@ -447,7 +447,7 @@ async function adminAction(id, action){
 }
 
 // Parent: pending posts for linked children
-async function loadParentPending(){
+async function loadParentPending() {
   let token = getParentToken();
   let res = await fetch(`${API_BASE}/parents/me/pending`, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
   if (res.status === 401) {
@@ -462,23 +462,23 @@ async function loadParentPending(){
   const box = qs('#parentPendingList'); box.innerHTML = '';
   if (!posts.length) { box.textContent = 'No pending posts for your children'; return; }
   posts.forEach(p => {
-    const el = document.createElement('div'); el.className='post';
-    el.innerHTML = `<h3>${p.title||'Untitled'}</h3>`;
+    const el = document.createElement('div'); el.className = 'post';
+    el.innerHTML = `<h3>${p.title || 'Untitled'}</h3>`;
     if (p.mediaUrl && /(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(p.mediaUrl)) {
-      const embed = (function(u){ try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch(e){ return null; } })(p.mediaUrl);
+      const embed = (function (u) { try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
       if (embed) el.innerHTML += `<iframe width="100%" height="220" src="${embed}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     } else if (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) el.innerHTML += `<video controls src="${p.mediaUrl}"></video>`;
     else if (p.mediaUrl) el.innerHTML += `<img src="${p.mediaUrl}"/>`;
-    const actions = document.createElement('div'); actions.className='admin-actions';
-    const a = document.createElement('button'); a.textContent='Approve'; a.onclick = async () => { await parentAction(p.id, 'approve'); loadParentPending(); };
-    const r = document.createElement('button'); r.textContent='Reject'; r.onclick = async () => { await parentAction(p.id, 'reject'); loadParentPending(); };
-  const clear = document.createElement('button'); clear.textContent='Clear token'; clear.onclick = () => { localStorage.removeItem('recess_parent_jwt'); alert('Token cleared'); };
+    const actions = document.createElement('div'); actions.className = 'admin-actions';
+    const a = document.createElement('button'); a.textContent = 'Approve'; a.onclick = async () => { await parentAction(p.id, 'approve'); loadParentPending(); };
+    const r = document.createElement('button'); r.textContent = 'Reject'; r.onclick = async () => { await parentAction(p.id, 'reject'); loadParentPending(); };
+    const clear = document.createElement('button'); clear.textContent = 'Clear token'; clear.onclick = () => { localStorage.removeItem('recess_parent_jwt'); alert('Token cleared'); };
     actions.appendChild(a); actions.appendChild(r); actions.appendChild(clear); el.appendChild(actions);
     box.appendChild(el);
   });
 }
 
-async function parentAction(id, action){
+async function parentAction(id, action) {
   let token = getParentToken();
   if (!token) return alert('Parent login missing');
   const headers = { 'Authorization': 'Bearer ' + token };
@@ -507,39 +507,50 @@ const showParentLoginLink = qs('#showParentLogin');
 const showAdminLoginLink = qs('#showAdminLogin');
 
 function hideEntryOverlay() {
-  if (entryOverlay) { entryOverlay.style.display = 'none'; entryOverlay.setAttribute('aria-hidden','true'); }
+  if (entryOverlay) { entryOverlay.style.display = 'none'; entryOverlay.setAttribute('aria-hidden', 'true'); }
   localStorage.setItem(ENTRY_KEY, '1');
 }
 
 function showEntryOverlay() {
-  if (entryOverlay) { entryOverlay.style.display = ''; entryOverlay.setAttribute('aria-hidden','false'); }
+  if (entryOverlay) { entryOverlay.style.display = ''; entryOverlay.setAttribute('aria-hidden', 'false'); }
 }
 
-if (enterGuestBtn) enterGuestBtn.addEventListener('click', (e) => { e.preventDefault(); hideEntryOverlay(); show('feed'); });
-if (enterDemoBtn) enterDemoBtn.addEventListener('click', (e) => { e.preventDefault(); localStorage.setItem('recess_demo_mode','1'); hideEntryOverlay(); show('feed'); });
+if (enterGuestBtn) enterGuestBtn.addEventListener('click', (e) => { e.preventDefault(); hideEntryOverlay(); try { enterSwipeMode(); } catch (err) { show('feed'); } });
+if (enterDemoBtn) enterDemoBtn.addEventListener('click', (e) => { e.preventDefault(); localStorage.setItem('recess_demo_mode', '1'); hideEntryOverlay(); try { enterSwipeMode(); } catch (err) { show('feed'); } });
 if (showParentLoginLink) showParentLoginLink.addEventListener('click', (e) => { e.preventDefault(); hideEntryOverlay(); showParent(); });
 if (showAdminLoginLink) showAdminLoginLink.addEventListener('click', (e) => { e.preventDefault(); hideEntryOverlay(); showAdmin(); });
 
 // On load: if user hasn't seen entry overlay, show it. Otherwise proceed to feed.
-if (!localStorage.getItem(ENTRY_KEY)) {
+// On load: check for existing session tokens OR if user has seen entry overlay
+const hasToken = localStorage.getItem('recess_user_jwt') || localStorage.getItem('recess_parent_jwt') || localStorage.getItem('recess_admin_token');
+
+if (!hasToken && !localStorage.getItem(ENTRY_KEY)) {
   showEntryOverlay();
 } else {
   hideEntryOverlay();
-  show('feed');
+  // Open the swipe-style full-screen feed by default for a TikTok-like experience
+  try { enterSwipeMode(); } catch (e) { show('feed'); }
 }
+
+// Swipe feed state (declare early so functions can call enterSwipeMode safely)
+let swipeFeedPage = 1;
+let swipeFeedLimit = 4;
+let swipePosts = [];
+let swipeIndex = 0;
+let swipeHandlersAttached = false;
 
 // Quick demo sign-in handlers (landing page buttons)
 const quickKid5 = qs('#quickKid5');
 const quickTeen14 = qs('#quickTeen14');
 async function demoSignIn(email) {
   try {
-    const res = await fetch(`${API_BASE}/users/demo-login`, { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+    const res = await fetch(`${API_BASE}/users/demo-login`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
     if (!res.ok) {
-      const b = await res.json().catch(()=>({}));
+      const b = await res.json().catch(() => ({}));
       return alert('Demo sign-in failed: ' + (b.error || res.status));
     }
     // server sets cookie, but also return token for local fallback
-    const body = await res.json().catch(()=>({}));
+    const body = await res.json().catch(() => ({}));
     if (body && body.token) localStorage.setItem('recess_user_jwt', body.token);
     // open app
     window.location.href = '/index.html';
@@ -557,10 +568,6 @@ const swipePagination = qs('#swipePagination');
 const swipeMeta = qs('#swipeMeta');
 const swipeActions = qs('#swipeActions');
 
-let swipeFeedPage = 1;
-let swipeFeedLimit = 4;
-let swipePosts = [];
-let swipeIndex = 0;
 
 if (btnSwipe) btnSwipe.addEventListener('click', () => enterSwipeMode());
 if (swipeClose) swipeClose.addEventListener('click', () => exitSwipeMode());
@@ -577,7 +584,11 @@ async function enterSwipeMode() {
   swipeFeedPage = 1; swipePosts = []; swipeIndex = 0;
   const data = await fetchFeedPage(swipeFeedPage);
   swipePosts = data.posts || [];
-  swipeView.classList.remove('hidden'); swipeView.setAttribute('aria-hidden','false');
+  swipeView.classList.remove('hidden'); swipeView.setAttribute('aria-hidden', 'false');
+  // enable TikTok-like layout (dark, left nav, narrow center column)
+  try { document.body.classList.add('tiktok-mode'); const ln = qs('#leftNav'); if (ln) { ln.classList.remove('hidden'); ln.setAttribute('aria-hidden', 'false'); } } catch (e) { }
+  // prevent page scrolling while in fullscreen swipe mode
+  try { document.body.style.overflow = 'hidden'; } catch (e) { }
   renderSwipeItem(swipeIndex);
   updateSwipePagination();
   window.addEventListener('keydown', swipeKeyHandler);
@@ -585,20 +596,23 @@ async function enterSwipeMode() {
 }
 
 function exitSwipeMode() {
-  try { pauseAllVideos(); } catch(e){}
-  swipeView.classList.add('hidden'); swipeView.setAttribute('aria-hidden','true');
+  try { pauseAllVideos(); } catch (e) { }
+  swipeView.classList.add('hidden'); swipeView.setAttribute('aria-hidden', 'true');
   swipeContainer.innerHTML = '';
   if (swipeActions) swipeActions.innerHTML = '';
+  try { document.body.style.overflow = ''; } catch (e) { }
+  // disable TikTok layout
+  try { document.body.classList.remove('tiktok-mode'); const ln = qs('#leftNav'); if (ln) { ln.classList.add('hidden'); ln.setAttribute('aria-hidden', 'true'); } } catch (e) { }
   window.removeEventListener('keydown', swipeKeyHandler);
 }
 
-function updateSwipePagination(){
-  swipePagination.textContent = `Item ${Math.min(swipeIndex+1, swipePosts.length)} of ${swipePosts.length} (page ${swipeFeedPage})`;
+function updateSwipePagination() {
+  swipePagination.textContent = `Item ${Math.min(swipeIndex + 1, swipePosts.length)} of ${swipePosts.length} (page ${swipeFeedPage})`;
   swipeMeta.textContent = swipePosts[swipeIndex] ? `${swipePosts[swipeIndex].title || ''} • ${swipePosts[swipeIndex].category || ''}` : '';
 }
 
-function pauseAllVideos(){
-  try { Array.from(document.querySelectorAll('video')).forEach(v => { try { v.pause(); } catch(e){} }); } catch(e){}
+function pauseAllVideos() {
+  try { Array.from(document.querySelectorAll('video')).forEach(v => { try { v.pause(); } catch (e) { } }); } catch (e) { }
 }
 
 function renderSwipeItem(index) {
@@ -607,37 +621,68 @@ function renderSwipeItem(index) {
   swipeContainer.innerHTML = '';
   if (!p) { swipeContainer.innerHTML = '<div class="muted">No posts</div>'; return; }
   const el = document.createElement('div'); el.className = 'swipe-item';
+  // Helper: build YouTube embed URL (supports watch?v=, youtu.be, and /shorts/ links)
+  const toYouTubeEmbed = (url) => {
+    if (!url) return null;
+    try {
+      const u = new URL(url);
+      let id = null;
+      if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
+      else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
+      else if (u.hostname.includes('youtube.com')) id = u.searchParams.get('v');
+      if (!id) return null;
+      // autoplay & mute for swipe; playsinline for mobile
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1`;
+    } catch (e) { return null; }
+  };
+
+  const isYouTube = (u) => /(?:youtube.com\/watch\?v=|youtu.be\/|youtube.com\/shorts\/)/i.test(u || '');
+
   if (p.mediaType === 'video' || (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i))) {
     const v = document.createElement('video'); v.src = p.mediaUrl; v.controls = true; v.muted = true; v.playsInline = true; v.autoplay = true; v.style.maxHeight = '100%'; el.appendChild(v);
     // Try to play reliably: play on canplay and attempt a play() after short delay
-    v.addEventListener('canplay', () => { v.play().catch(()=>{}); });
-    setTimeout(() => { try { v.play().catch(()=>{}); } catch(e){} }, 250);
+    v.addEventListener('canplay', () => { v.play().catch(() => { }); });
+    setTimeout(() => { try { v.play().catch(() => { }); } catch (e) { } }, 250);
+  } else if (p.mediaUrl && isYouTube(p.mediaUrl)) {
+    // For YouTube links (including Shorts) embed an iframe with autoplay & muted params
+    const embed = toYouTubeEmbed(p.mediaUrl);
+    if (embed) {
+      const iframe = document.createElement('iframe');
+      iframe.src = embed;
+      iframe.width = '100%'; iframe.height = '100%'; iframe.style.height = '100%'; iframe.style.width = '100%';
+      iframe.setAttribute('frameborder', '0');
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+      iframe.allowFullscreen = true;
+      el.appendChild(iframe);
+    } else {
+      const img = document.createElement('img'); img.src = p.thumbnail || p.mediaUrl; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+    }
   } else if (p.mediaUrl) {
     const img = document.createElement('img'); img.src = p.thumbnail || p.mediaUrl; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
   } else {
     const img = document.createElement('img'); img.src = p.thumbnail; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
   }
-  const info = document.createElement('div'); info.style.marginTop='8px'; info.style.textAlign='center'; info.innerHTML = `<h3 style="margin:6px 0">${p.title||'Untitled'}</h3><div class="muted small">${p.description||''}</div>`;
+  const info = document.createElement('div'); info.style.marginTop = '8px'; info.style.textAlign = 'center'; info.innerHTML = `<h3 style="margin:6px 0">${p.title || 'Untitled'}</h3><div class="muted small">${p.description || ''}</div>`;
   el.appendChild(info);
   swipeContainer.appendChild(el);
   // Render action buttons
   if (swipeActions) {
     swipeActions.innerHTML = '';
-    const likeBtn = document.createElement('button'); likeBtn.className='btn'; likeBtn.textContent = `Like`;
-    const likeCount = document.createElement('div'); likeCount.className='swipe-like-count'; likeCount.textContent = p.likesCount ? `${p.likesCount} likes` : '';
+    const likeBtn = document.createElement('button'); likeBtn.className = 'btn'; likeBtn.textContent = `Like`;
+    const likeCount = document.createElement('div'); likeCount.className = 'swipe-like-count'; likeCount.textContent = p.likesCount ? `${p.likesCount} likes` : '';
     likeBtn.addEventListener('click', async () => {
       try {
         const res = await fetch(`${API_BASE}/posts/${p.id}/like`, { method: 'POST' });
-        const body = await res.json().catch(()=>({}));
+        const body = await res.json().catch(() => ({}));
         if (body && typeof body.likesCount !== 'undefined') { likeCount.textContent = `${body.likesCount} likes`; }
       } catch (e) { console.error(e); }
     });
-    const reportBtn = document.createElement('button'); reportBtn.className='btn report'; reportBtn.textContent='Report';
+    const reportBtn = document.createElement('button'); reportBtn.className = 'btn report'; reportBtn.textContent = 'Report';
     reportBtn.addEventListener('click', async () => {
       const reason = prompt('Report reason (optional)');
       try {
-        const res = await fetch(`${API_BASE}/posts/${p.id}/report`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ reporterId: null, reason }) });
-        if (res.ok) { alert('Reported — moving to next post'); await swipeNext(); } else { const b = await res.json().catch(()=>({})); alert('Report failed: ' + (b.error||res.status)); }
+        const res = await fetch(`${API_BASE}/posts/${p.id}/report`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reporterId: null, reason }) });
+        if (res.ok) { alert('Reported — moving to next post'); await swipeNext(); } else { const b = await res.json().catch(() => ({})); alert('Report failed: ' + (b.error || res.status)); }
       } catch (e) { console.error(e); alert('Report error'); }
     });
     swipeActions.appendChild(likeBtn); swipeActions.appendChild(reportBtn); swipeActions.appendChild(likeCount);
@@ -645,13 +690,13 @@ function renderSwipeItem(index) {
   updateSwipePagination();
 }
 
-function swipeKeyHandler(e){
+function swipeKeyHandler(e) {
   if (e.key === 'ArrowDown' || e.key === 'j') return swipeNext();
   if (e.key === 'ArrowUp' || e.key === 'k') return swipePrev();
   if (e.key === 'Escape') return exitSwipeMode();
 }
 
-async function swipeNext(){
+async function swipeNext() {
   if (swipeIndex < swipePosts.length - 1) { swipeIndex++; renderSwipeItem(swipeIndex); }
   else if (swipePosts.length && swipePosts.length === swipeFeedLimit) {
     swipeFeedPage++;
@@ -664,13 +709,67 @@ async function swipeNext(){
   }
 }
 
-function swipePrev(){ if (swipeIndex > 0) { swipeIndex--; renderSwipeItem(swipeIndex); } }
+function swipePrev() { if (swipeIndex > 0) { swipeIndex--; renderSwipeItem(swipeIndex); } }
 
 // Touch handlers
-function initSwipeTouchHandlers(){
+function initSwipeTouchHandlers() {
+  if (!swipeContainer || !swipeView) return;
+  if (swipeHandlersAttached) return; // attach handlers only once
+  swipeHandlersAttached = true;
+
+  // Touch swipe support (on container)
   let startY = 0; let down = false;
-  if (!swipeContainer) return;
   swipeContainer.addEventListener('touchstart', (ev) => { if (ev.touches && ev.touches[0]) { startY = ev.touches[0].clientY; down = true; } });
   swipeContainer.addEventListener('touchmove', (ev) => { if (!down) return; const y = ev.touches[0].clientY; const dy = y - startY; if (Math.abs(dy) > 80) { down = false; if (dy < 0) swipeNext(); else swipePrev(); } });
   swipeContainer.addEventListener('touchend', () => { down = false; });
+
+  // Pointer (mouse) drag support — attach to swipeView so iframes don't block it
+  let pStartY = 0; let pDown = false;
+  swipeView.addEventListener('pointerdown', (ev) => {
+    // Only start drag if clicking outside the iframe (e.g., around the edges)
+    pStartY = ev.clientY; pDown = true;
+  });
+  swipeView.addEventListener('pointermove', (ev) => {
+    if (!pDown) return;
+    const dy = ev.clientY - pStartY;
+    if (Math.abs(dy) > 60) { pDown = false; if (dy < 0) swipeNext(); else swipePrev(); }
+  });
+  swipeView.addEventListener('pointerup', () => { pDown = false; });
+  swipeView.addEventListener('pointerleave', () => { pDown = false; });
+
+  // Wheel / trackpad support (debounced) — attach to swipeView
+  let wheelLocked = false;
+  swipeView.addEventListener('wheel', (ev) => {
+    if (wheelLocked) return;
+    const delta = ev.deltaY || 0;
+    if (Math.abs(delta) < 20) return; // ignore tiny moves
+    if (delta > 0) swipeNext(); else swipePrev();
+    wheelLocked = true;
+    setTimeout(() => { wheelLocked = false; }, 400);
+    ev.preventDefault();
+  }, { passive: false });
+
+  // Add visible prev/next buttons as fallback navigation
+  addSwipeNavButtons();
+}
+
+// Add prev/next navigation buttons to swipe view
+function addSwipeNavButtons() {
+  if (qs('#swipePrevBtn') || qs('#swipeNextBtn')) return; // already added
+  const prevBtn = document.createElement('button');
+  prevBtn.id = 'swipePrevBtn';
+  prevBtn.className = 'swipe-nav-btn swipe-nav-prev';
+  prevBtn.innerHTML = '&#9650;'; // up arrow
+  prevBtn.title = 'Previous (Up arrow or K)';
+  prevBtn.addEventListener('click', (e) => { e.stopPropagation(); swipePrev(); });
+
+  const nextBtn = document.createElement('button');
+  nextBtn.id = 'swipeNextBtn';
+  nextBtn.className = 'swipe-nav-btn swipe-nav-next';
+  nextBtn.innerHTML = '&#9660;'; // down arrow
+  nextBtn.title = 'Next (Down arrow or J)';
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); swipeNext(); });
+
+  swipeView.appendChild(prevBtn);
+  swipeView.appendChild(nextBtn);
 }
