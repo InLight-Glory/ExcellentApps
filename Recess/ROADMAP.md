@@ -1,68 +1,68 @@
-# Recess Roadmap
+# Recess Roadmap — Beta-focused
 
-This roadmap lists prioritized improvements, grouped by milestone and status. Use this file to track what should be implemented now vs later. Each item includes a short description, why it matters, rough priority, and suggested next steps.
+This roadmap captures the current priorities as we work toward a working beta release (an end-to-end parent/child posting and moderation flow, plus a redesigned landing/feed experience). Use this file to track status, owners, and acceptance criteria for the beta.
 
 How to use
-- Mark items as `TODO`, `IN-PROGRESS`, or `DONE` and update owner/ETA as you pick work.
+- Mark items as `TODO`, `IN-PROGRESS`, or `DONE` and add `owner` + `ETA` when you pick a task.
+- Beta acceptance criteria are listed below; prioritize items that unblock them.
 
-High priority (near-term / beta)
+Beta Goal (minimum):
+- Deliver a deployable app where a child can create media posts (browser), a parent can approve them, content appears in the public feed, and staff can escalate or moderate from an admin UI. The landing page should demonstrate the new feed (TikTok-style/video-first) and basic analytics.
 
-- [IN-PROGRESS] UI overhaul — responsive card-based feed, in-page parent login, upload form improvements
-  - Why: improves clarity for testers and parents; reduces friction for end-to-end flows.
-  - Next: polish accessibility, add media preview, add small demo posts.
+Current status (high-level)
+- [IN-PROGRESS] Landing page redesign: TikTok-style video feed and responsive card feed — branch: `copilot/redesign-landing-page` (PR: redesign landing page with TikTok-style video feed).
+- [IN-PROGRESS] UI polish: in-page parent login, upload form improvements, client-side preview and progress indicator.
+- [TODO] Server persistence to production storage (migrate `uploads/` to cloud storage and CDN).
+- [TODO] Admin moderation UI: in-page admin login, escalations, bulk actions.
+- [DONE] Basic integration script: `test/run-tests.js` covers parent login → create post → parent approve → feed visibility → report → admin escalate.
 
-- [TODO] Wire upload form with `childEmail` (browser) and client-side preview
-  - Why: enable full browser-based child → parent → public flow without manual API calls.
-  - Next: add `childEmail` input (done), add preview and progress bar.
+Beta milestones
+- Milestone B1 — Core flows (1–2 weeks)
+  - Implement and QA: browser upload with `childEmail`, parent approval flow (in-page or link), feed visibility tests.
+  - Acceptance: test script passes and demoable on local & staging.
 
-- [TODO] Admin in-page login / nicer moderation UI
-  - Why: avoid prompt() flows and make staff workflows smoother.
-  - Next: create admin login form, show escalated queue, add bulk actions.
+- Milestone B2 — Feed & landing (1 week)
+  - Complete landing redesign with continuous vertical feed (video-first) and responsive layout.
+  - Acceptance: landing shows demo posts, smooth play/pause on scroll, accessible controls.
 
-- [TODO] Server-detected session indicator (small UI polish)
-  - Why: show when the server recognizes the user as logged-in (cookie-based session). This avoids confusion when the same account is used on multiple devices and surface server-side state.
-  - Priority: low-medium
-  - Next: add a small badge in the top-right that queries a lightweight `/api/session` endpoint (or reads a small server-echo response) and displays "Signed in (server)" or nothing.
+- Milestone B3 — Admin & moderation (1 week)
+  - Ship in-page admin login, moderation queue with escalated items, and bulk actions.
+  - Acceptance: staff can mark, delete, or restore posts; escalations surface metadata.
 
-Medium priority (post-beta)
+- Milestone B4 — Ops & deployment (1–2 weeks)
+  - Move media to cloud storage, add Dockerfile, basic deployment docs, and CI checks.
+  - Acceptance: app deploys to a staging host, media served from storage, CI runs tests on push.
 
-- [TODO] Authentication & accounts
-  - Replace config-based tokens with a proper auth system. Options: JWT with refresh tokens + hashed passwords; OAuth with third-party provider; third-party auth (Auth0, Clerk).
-  - Next: choose provider, migrate seeds, add account management UI.
+Acceptance criteria for Beta
+- Child-to-parent flow: browser upload with `childEmail` and preview, upload completes with progress, and parent is notified (email or in-page) and can approve.
+- Feed: approved posts appear in the public feed consistently and are playable on the landing page; feed supports video-first UX.
+- Moderation: admin can view escalated items and take actions (delete/hide/restore). Audit entries created for actions.
+- Tests: `test/run-tests.js` passes in CI; basic end-to-end smoke tests are in place.
+- Deployment: Dockerfile and simple deployment steps documented; media served from persistent storage.
 
-- [TODO] Persistent media storage and CDN
-  - Move from local `uploads/` to S3/Blob storage; serve via signed URLs or CDN.
-  - Next: add storage adapter and migration path.
+Immediate tasks (next sprint)
+- [IN-PROGRESS] Complete landing page video feed integration — owner: frontend — ETA: 4 days
+- [IN-PROGRESS] Wire upload form to backend including `childEmail` and preview — owner: frontend — ETA: 3 days
+- [TODO] Add admin login UI and moderation queue — owner: ops/frontend — ETA: 1 week
+- [TODO] Add cloud storage adapter & migration for `uploads/` — owner: backend — ETA: 1 week
+- [TODO] Add Dockerfile + staging deploy script — owner: devops — ETA: 1 week
 
-- [TODO] Moderation tools & workflows
-  - Add moderation dashboard, staff roles, audit log, bulk moderation, and machine-assisted filters.
-  - Next: wire reports → moderation queue with richer metadata and email/Slack alerts for escalations.
+Testing and CI
+- Keep `test/run-tests.js` as the canonical integration test for now.
+- Add a CI pipeline (GitHub Actions) to run lint, `npm test`, and `node test/run-tests.js` on PRs targeting `main` and `copilot/redesign-landing-page`.
 
-Lower priority / future
+Security, privacy & legal
+- [TODO] Remove secrets from `config.json` and use environment variables / secrets manager.
+- [TODO] Plan COPPA & privacy compliance for beta launch; prioritize transparent parent-consent flows.
 
-- [TODO] COPPA / privacy & legal compliance
-  - Implement age gating, parental consent flows, data retention policies, and privacy docs.
+Governance & contributions
+- Add your initials when you pick a task (e.g., `- [IN-PROGRESS] Foo feature — owner: AV — ETA: 2025-12-05`).
+- For larger items (auth, storage migration) we'll break work into smaller PR-sized tasks and assign owners.
 
-- [TODO] Analytics and metrics
-  - Event tracking, acceptance criteria for success metrics, retention funnels.
+Next steps (this session)
+- Finish drafting this roadmap (done).
+- Apply the updated file to the repo (next).
+- After merge: open issues corresponding to the immediate tasks and create PR templates for B1–B4 work.
 
-- [TODO] Mobile apps / PWA
-  - Build mobile clients or PWA for better native-like experience.
-
-Tests and automation
-
-- [DONE] Basic integration script: `test/run-tests.js` exercises parent login → create post → parent approve → feed visibility → report → admin escalated
-
-- [TODO] Add CI unit tests and UI end-to-end tests (Playwright/Puppeteer)
-
-Security & ops
-
-- [TODO] Secrets & config management
-  - Move secrets out of `config.json` and into environment variables or a secrets manager.
-
-- [TODO] Deployment
-  - Add Dockerfile, deployment playbook (VPS, Heroku, or container registry + cloud provider).
-
-Roadmap governance
-- When you want a feature implemented now, add your initials and a short ETA beside the item and assign the task to the backlog or start it.
-- For quick wins I can implement items directly (UI polish, admin login, upload preview). For larger items (auth migration, media storage) we'll plan a set of discrete tasks.
+--
+If you want, I can also open issues for the immediate tasks and create the Dockerfile + a minimal GitHub Actions workflow next. Want me to proceed with that?

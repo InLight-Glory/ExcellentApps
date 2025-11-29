@@ -16,6 +16,7 @@
       </div>
       <nav class="main-nav">
         <button id="btn-feed" class="nav-btn">Feed</button>
+        <button id="btn-swipe" class="nav-btn">Swipe</button>
         <button id="btn-upload" class="nav-btn">Upload</button>
         <button id="btn-user" class="nav-btn">User</button>
         <button id="btn-parent" class="nav-btn">Parent</button>
@@ -96,6 +97,17 @@
     <footer class="site-footer">
       <small>Recess MVP — local dev only. Change `server/config.json` for seeded credentials.</small>
     </footer>
+
+    <!-- Swipe view: full-screen single-item pager for touch testing -->
+    <div id="swipeView" class="swipe-view hidden" aria-hidden="true">
+      <div class="swipe-top">
+        <button id="swipeClose" class="btn">Close</button>
+        <div id="swipeMeta" class="muted small"></div>
+      </div>
+      <div id="swipeContainer" class="swipe-container"></div>
+      <div class="swipe-actions" id="swipeActions"></div>
+      <div id="swipePagination" class="swipe-pagination muted small"></div>
+    </div>
 
     <!-- Landing / Entry Overlay -->
     <div id="entryOverlay" class="entry-overlay" aria-hidden="false">
