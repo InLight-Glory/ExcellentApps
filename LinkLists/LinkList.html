@@ -19,13 +19,17 @@
             background-color: rgb(159, 236, 255);
         }
 
-        .itemz {
-            cursor: move;
+        .itemz, .draggable {
+            xcursor: move;
             display: flex;
             align-items: center;
             border-bottom: 2px solid rgb(153, 153, 153);
         }
 
+        .draggable {
+            display: inline;
+        }
+ 
         .main {
             grid-area: main;
             border: 1px dotted black;
@@ -54,6 +58,60 @@
         textarea {
             font-family: Tahoma, sans-serif;
         }
+
+        .updowns{
+            padding: 5px;
+            width: 6%;
+        }
+        .updowns button{
+            width: 4vw;
+            height: 30px;
+        }
+        .arrow {
+            border: solid black;
+            border-width: 0 3px 3px 0;
+            display: inline-block;
+            padding: 3px;
+        }
+
+        .right {
+            transform: rotate(-45deg);
+            -webkit-transform: rotate(-45deg);
+        }
+
+        .left {
+            transform: rotate(135deg);
+            -webkit-transform: rotate(135deg);
+        }
+
+        .up {
+            transform: rotate(-135deg);
+            -webkit-transform: rotate(-135deg);
+        }
+
+        .down {
+            transform: rotate(45deg);
+            -webkit-transform: rotate(45deg);
+        }
+
+        #xportDiag{
+            display: none;
+            position: absolute;
+            width: 99%;
+            height: 99%;
+            background-color: rgba(0, 0, 0, 0.5);
+            margin: 0 auto;
+        }
+        #xportDiag div{
+            text-align: center;
+            background-color: white;
+            width: 50%;
+            height: 50%;
+            opacity: 100%;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 auto;
+        }
     </style>
     <script>
         function q$(selector){
@@ -65,17 +123,14 @@
             // var x = document.getElementById().parentElement.nodeName;
             // var x = document.getElementById(txt);
             var copyText = document.getElementById(txt);
-            if (itm=="a"){
-
-            }else {
-                CopyCounter(itm);
-            }
             /* Select the text field */
             copyText.select();
             copyText.setSelectionRange(0, 99999); /* For mobile devices */
-
+            
             /* Copy the text inside the text field */
             navigator.clipboard.writeText(copyText.value);
+
+            if (itm=="a"){ }else { CopyCounter(itm); }
         } 
         function cleanTexts(tex,direction) {
             if (direction == "in"){
@@ -190,6 +245,7 @@
         function Exportte() {
             var dateNowz = new Date().getTime();
             let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
             
             var sFileName = prompt("Name the export here: ", Hdf+" Export");
 
@@ -197,7 +253,8 @@
                 var txtAreaCount = document.querySelectorAll("textarea").length;
                 var nTxt = document.getElementsByTagName("textarea");
                 var nTcount = document.querySelectorAll(".couClass");
-                var SaveTxt = dateNowz+"(~)"; let cou;
+                var SaveTxt = ""; var cou, st1, st2;
+                st1 = ""; st2 = "";
                 for (var i=0; i < txtAreaCount; i++){
                     // console.log("i is "+i);
                     try {
@@ -208,14 +265,15 @@
                         cou = undefined;
                     }
                     if (cou != undefined){
-                        SaveTxt += cleanTexts(nTxt[i].value,'in') + "|~|" + cleanTexts(nTcount[i].textContent, 'in') + "(~)";
+                        st1 += cleanTexts(nTxt[i].value,'in') + "|~|" + cleanTexts(nTcount[i].textContent, 'in') + "(~)";
                     }else {
-                        SaveTxt += cleanTexts(nTxt[i].value, 'in') + "|~|null(~)";
+                        st2 += cleanTexts(nTxt[i].value, 'in') + "|~|null(~)";
                     }
                 }
+                SaveTxt += dateNowz + "(~)|(~)" + st1 +"(~)|(~)"+ st2;
                 var Tencrypted = encrypt(SaveTxt); 
 
-                console.log(Tencrypted);
+                // console.log(SaveTxt);
                 // Convert the text to BLOB.
                 const textToBLOB = new Blob([Tencrypted], { type: 'text/plain' });
                 // const sFileName = 'formData.txt';	   // The file to save the data.
@@ -235,9 +293,10 @@
                 newLink.click();
             }
         }
-        function Exportth () {
+        function Exportth() {
             var dateNowz = new Date().getTime();
             let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
             
             var sFileName = prompt("Name the export here: ", Hdf+" Export");
 
@@ -248,6 +307,7 @@
                 var SaveTxt = ""; let cou;
                 var SaveTxtTop = "";
                 for (var i=0; i < txtAreaCount; i++){
+                    var ic = i+1;
                     // console.log("i is "+i);
                     try {
                         cou = nTcount[i].textContent;
@@ -259,14 +319,15 @@
                     if (cou != undefined){
                         SaveTxt += nTxt[i].value + " : " + nTcount[i].textContent + " ;\n\n";
                     }else {
-                        SaveTxtTop += nTxt[i].value + "\n";
+                        ic = -txtAreaCount+i+6;
+                        SaveTxtTop += ic+") "+nTxt[i].value + "\n";
                     }
                 }
-                var Tencrypted = Hdf +"\n\n"+ SaveTxtTop +"\n\n"+ SaveTxt; 
+                var Tsimple = Hdf +"\n\n"+ SaveTxtTop +"\n\n"+ SaveTxt; 
 
-                // console.log(Tencrypted);
+                // console.log(Tsimple);
                 // Convert the text to BLOB.
-                const textToBLOB = new Blob([Tencrypted], { type: 'text/plain' });
+                const textToBLOB = new Blob([Tsimple], { type: 'text/plain' });
                 // const sFileName = 'formData.txt';	   // The file to save the data.
 
                 let newLink = document.createElement("a");
@@ -284,6 +345,67 @@
                 newLink.click();
             }
         
+        }
+        function Exporttx(){
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                var txtAreaCount = document.querySelectorAll("textarea").length;
+                var nTxt = document.getElementsByTagName("textarea");
+                var nTcount = document.querySelectorAll(".couClass");
+                var SaveTxt = ""; let cou;
+                var SaveTxtTop = "";
+                for (var i=0; i < txtAreaCount; i++){
+                    var ic = i+1;
+                    // console.log("i is "+i);
+                    try {
+                        cou = nTcount[i].textContent;
+                        cou = cou.toString();
+                    }
+                    catch (err){
+                        cou = undefined;
+                    }
+                    if (cou != undefined){
+                        var tnt = nTxt[i].value;
+                        if (tnt==""){
+                            tnt = "-";
+                        }
+                        SaveTxt += ic +","+ tnt + " : " + nTcount[i].textContent + "\n";
+                    }else {
+                        ic = -txtAreaCount+i+6;
+                        SaveTxtTop += ic +","+ nTxt[i].value + "\n";
+                    }
+                }
+                var Tcsv = "Title:,"+sFileName+"\n"+
+                "Date:,"+ Hdf + "\n"+
+                ",Top 5:\n"+
+                SaveTxtTop +
+                ",\n"+
+                ",List:\n"+
+                SaveTxt; 
+
+                // console.log(Tencrypted);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tcsv], { type: 'text/csv;charset=utf-8,' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName+".csv";
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
         }
 
         function startImport(){
@@ -300,124 +422,189 @@
                 Tdecrypted = decrypt(RetTxt);
                 loadImport(Tdecrypted);
             };
-            reader.readAsText(selectedFile)
+            reader.readAsText(selectedFile);
         }
         
         function loadImport(savedInfo) {
-            console.log(savedInfo);
-            var items = savedInfo.split("(~)");
-            for (var i=0; i < items.length; i++){
-                if (i==0) {
+            // console.log(savedInfo);
+            var items = savedInfo.split("(~)|(~)");
+                    document.title = HumanDate(items[0]);
 
-                }
-            }
+                    var listAll = items[1].split("(~)"); var listload = "";
+                    for (var i=0; i < listAll.length-1; i++){
+                        var innerTx = listAll[i].split("|~|");
+                        listload += "<div class='draggable' draggable='true'>"+
+                        "<div class='itemz' id='item"+i+"'>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
+                            "<textarea id='inItem"+i+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'>"+innerTx[0]+"</textarea>"+
+                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
+                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
+                            "<div id='item"+i+"count' class='couClass' style='margin-left: 5px'>"+innerTx[1]+"</div>"+
+                        "</div>"+
+                        // "<div style='display:block' class='mainBot'></div>"+
+                    "</div>"
+                    }
+                    document.querySelector(".main div").innerHTML = listload;
+
+                    var listTop = items[2].split("(~)");
+                    for (var i=0; i < 5; i++){
+                        var onA = i+1;
+                        var item = listTop[i].split("|~|");
+                        var lTop = item[0];
+                        document.querySelector("#iItem"+onA).value = lTop;
+                    }
         }
 
         function removeMe(nod){
             document.getElementById(nod).remove();
+            var izCount = document.querySelectorAll(".draggable").length;
+                for (var h = 0; h < izCount; h++){
+                    dragCheck = document.querySelector(".draggable:nth-child("+h+")");
+                    if (dragCheck.innerHTML == ""){
+                        document.querySelector("div.draggable:nth-child("+h+")").remove();
+                    }
+                    
+                }
         }
 
         function itemTemplate (num){
             if (num==null){num = 0;}
-            return "<div>"+
-                        "<div class='itemz' id='item"+num+"' draggable='true'>"+
-                            "<input onclick='txtCopy(this.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+            return "<div><div class='draggable' draggable='true'>"+
+                        "<div class='itemz' id='item"+num+"'>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
                             "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
+                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
                             "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
                             "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
-                        "</div>"+
-                        "<div style='display:block' class='mainBot'></div>"+
-                    "</div>";
+                        "</div></div>"+
+                        "</div><div style='display:block' class='mainBot'></div>"+
+                    "</xdiv>";
         }
         function itemTemplateS (num){
             if (num==null){num = 0;}
-            return ""+
-                        "<div class='itemz' id='item"+num+"' draggable='true'>"+
-                            "<input onclick='txtCopy(this.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+            return "<div class='draggable' draggable='true'>"+
+                        "<div class='itemz' id='item"+num+"'>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
                             "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
+                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
                             "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
                             "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
                         "</div>"+
                         // "<div style='display:block' class='mainBot'></div>"+
-                    "";
+                    "</div>";
         }
 
-        function addMore(){
-            return "<button onclick='appendItem()' >+</button>";
+        function addMore(si){
+            return "<button onclick=\"appendItem("+si+")\" >+</button>";
         }
 
-        function appendItem(){
-            var izemCount = document.querySelectorAll(".itemz").length;
-            // var izemCount = document.getElementsByClassName("itemz").length;
-            var ic = 1; var io = 0;
-            for (var i=0; i < izemCount; i++){
-                document.querySelector("div.itemz:nth-child("+ic+")").id = "item"+io;
-                document.querySelector("div.itemz:nth-child("+ic+") textarea").id = "inItem"+io;
-                document.querySelector("div.itemz:nth-child("+ic+") .couClass").id = "item"+io+"count";
-                ic++;
-                io++;
-            }
-                q$(".mainBot").insertAdjacentHTML('beforebegin',itemTemplateS(izemCount++));
+        function appendItem(di){
+            if (di=="bot"){
+                var izemCount = document.querySelectorAll(".itemz").length;
+                var io = 0;
+                for (var h = 0; h < izemCount; h++){
+                    io=h+1;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
+                }
+                q$(".main div").insertAdjacentHTML('beforeend',itemTemplateS(izemCount++));
+                document.querySelector("div.draggable:nth-last-child(1) div.itemz textarea").focus();
                 // nowDrag();
+            }
+            if (di=="top"){
+                var izemCount = document.querySelectorAll(".itemz").length;
+                // var izemCount = document.getElementsByClassName("itemz").length;
+                var io = 0;
+                q$(".main div").insertAdjacentHTML('afterbegin',itemTemplateS(izemCount++));
+
+                for (var h = 0; h < izemCount; h++){
+                    io=h+1;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
+                    document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
+                }
+                document.querySelector("div.draggable:nth-child(1) div.itemz textarea").focus();
+
+                // nowDrag();
+            }
+
         }
 
         var load = 0;
 
-        /**Now Drag to allow for dragging listed item*
+        function MThis(way, me){
+            if (way == "top"){
+                me.closest(".draggable").parentNode.insertBefore(me.closest(".draggable"), me.closest(".draggable").previousSibling);
+            }
+            if (way == "bot"){
+                me.closest(".draggable").parentNode.insertBefore(me.closest(".draggable").nextSibling, me.closest(".draggable"));
+
+            }
+            var izemCount = document.querySelectorAll(".itemz").length;
+
+            var io = 0;
+            for (var h = 0; h < izemCount; h++){
+                io=h+1;
+                document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
+                document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
+                document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
+            }
+        }
+
+         /**Now Drag to allow for dragging listed item*
             function nowDrag(){
-            var draggables = Array.from(document.getElementsByClassName("itemz"));
-            var containers = document.querySelectorAll(".main");
+                
+                // var draggables = Array.from(document.getElementsByClassName("draggable"));
+                // var containers = document.querySelectorAll(".container div:nth-child(1)");
+                var draggables = document.querySelectorAll(".draggable");
+                var containers = document.querySelectorAll(".container div");
 
-            draggables.forEach(draggableItem =>{
-                draggableItem.addEventListener('dragstart', () =>{
-                    draggableItem.classList.add("dragging");
-                    // draggableItem.id="dragging";
+                draggables.forEach(draggable =>{
+                    draggable.addEventListener('dragstart', () =>{
+                        draggable.classList.add("dragging");
+                    })
+                    draggable.addEventListener('dragend', () =>{
+                        draggable.classList.remove("dragging");
+                    })
                 })
-                draggableItem.addEventListener('dragend', () =>{
-                    draggableItem.classList.remove("dragging");
-                    // draggableItem.id = "";
 
+                containers.forEach(container => {
+                    container.addEventListener('dragover', e => {
+                        e.preventDefault();
+                        var afterElement = getDragAfterElement(container, e.clientY);
+                        var draggable = document.querySelector('.dragging');
+                        if (afterElement == null){
+                            console.log(afterElement);
+                            container.appendChild(draggable);
+                        } else {
+                            container.insertBefore(draggable, afterElement);
+                        }
+                    })
                 })
-            })
 
-            containers.forEach(container => {
-                container.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    var afterElement = getDragAfterElement(container, e.clientY);
-                    var draggable = document.querySelector('.dragging')
-                    if (afterElement == null){
-                        container.appendChild(draggable);
-                    } else {
-                        container.insertBefore(draggable, afterElement);
-                    }
-                })
-            })
+                function getDragAfterElement(container , y){
+                    var draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
 
-            var draggable =  document.querySelector("#dragging");
-            var closestt = draggable.closest(".itemz");
-
-            function getDragAfterElement(container , y){
-                var draggableElements = [...container.querySelectorAll('.itemz:not(#dragging)')]
-
-
-                draggableElements.reduce((closestt, child) => {
-                    var box = child.getBoundingClientRect();
-                    console.log(box);
-                    var offset = y - box.top - box.height / 2;
-                    if (offset < 0 &&  offset > closestt.offset){
-                        var bba = { offset: offset, element: child};
-                        // console.log("bba == "+bba);
-                        return bba;
-                    } else {
-                        // console.log("here is closest: "+closest);
-                        return closestt;
-                    }
-                }, { offset: Number.NEGATIVE_INIFINITY } ).element;
-                return draggableElements;
-        }
-            
-            console.log("nowDrag ran");
-        }
+                    return draggableElements.reduce((closest, child) => {
+                        var box = child.getBoundingClientRect();
+                        console.log(box);
+                        var offset = y - box.top - box.height / 2;
+                        if (offset < 0 &&  offset > closest.offset){
+                            return { offset: offset, element: child};
+                        } else {
+                            return closest;
+                        }
+                    }, { offset: Number.NEGATIVE_INIFINITY } ).element;
+                }
+                console.log("nowDrag ran");
+            }
 
         /***/
 
@@ -426,10 +613,39 @@
             oldCount = parseInt(oldCount.textContent);
             var noe = document.querySelector("#"+mine+"count");
             noe.textContent = oldCount+1;
-            // q$(mine+"count").insertAdjacentHTML('beforebegin',itemTemplate(itemzCounted++));
-            
+            UpdateTopFive();
         }
         
+        function UpdateTopFive(){
+            var five = [];
+            var NumberCounts = document.querySelectorAll(".couClass").length;
+            for (var i=1; i <= NumberCounts; i++){
+                var q = i-1;
+                var nu = document.getElementById("item"+q+"count").innerHTML;
+                var obj ={"count" : nu , "loc":"item"+q+"count"};
+                five.push(obj);
+            }
+            
+            five.sort(function (a, b) {
+                return b.count - a.count;
+            });
+            for (var a=0; a < 5; a++){
+                var onA = a+1;
+                try{
+                 //code that causes an error
+                  var vvals = document.querySelector("#"+five[a]['loc']).previousSibling.previousSibling.value;
+                }catch(e){
+                    console.log("error occured");
+                    // functionToHandleError(e);
+                }
+                if ((vvals == null)||(vvals=="")){
+                    vvals = "()";
+                }
+                // console.log(vvals);
+                document.querySelector("#iItem"+onA).value = vvals;
+            }
+        }
+
         // Without jQuery
         // Define a convenience method and use it
         var ready = (callback) => {
@@ -441,20 +657,20 @@
         /* Do things after DOM has fully loaded */
         if (load == 0){
             q$(".main").innerHTML = itemTemplate();
-            q$(".main").insertAdjacentHTML('afterbegin',addMore());
-            q$(".mainBot").insertAdjacentHTML('beforeend',addMore());
+            q$(".main").insertAdjacentHTML('afterbegin',addMore("\'top\'"));
+            q$(".mainBot").insertAdjacentHTML('beforeend',addMore("\'bot\'"));
             // nowDrag();
         }
         });
         
     </script>
 </head>
-<body style="">
+<body>
     <div class="content">
         <div class="top" style="display: flex; justify-content: center;">
-            <a href="javascript:window.location.href=window.location.href">New</a>* Version 1.01 *<a onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">Download</a>
+            <a href="javascript:window.location.href=window.location.href">New</a>* Version 2.01 *<a onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">Download</a>
         </div>
-        <div class="main"><button onclick="appendItem()">+</button><div><div class="itemz" id="item0" draggable="true"><input onclick="txtCopy(this.nextElementSibling.id,this.parentNode.id)" type="button" value="Copy" style=""><textarea id="inItem0" style="width: 90%; min-width: 75%; min-height: 15px; margin: 5px" rows="3" maxlength="99990"></textarea><button onclick="removeMe(this.parentNode.id)">X</button><div id="item0count" class="couClass" style="margin-left: 5px">0</div></div><div style="display:block" class="mainBot"><button onclick="appendItem()">+</button></div></div></div>
+        <div class="main container"><button onclick="appendItem('top')">+</button><div><div class="draggable" draggable="true"><div class="itemz" id="item0"><input onclick="txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)" type="button" value="Copy" style=""><div class="updowns"><button onclick="MThis(&quot;top&quot;, this)"><i class="arrow up"></i></button><button onclick="MThis(&quot;bot&quot;, this)"><i class="arrow down"></i></button></div><textarea id="inItem0" style="width: 90%; min-width: 75%; min-height: 15px; margin: 5px" rows="3" maxlength="99990"></textarea><button onclick="removeMe(this.parentNode.id)">X</button><div id="item0count" class="couClass" style="margin-left: 5px">0</div></div></div></div><div style="display:block" class="mainBot"><button onclick="appendItem('bot')">+</button></div></div>
         <div class="main2">
 
             <div style="display: flex; justify-content: center;">
@@ -474,11 +690,11 @@
                 <input onclick="txtCopy(q$(&quot;#iItem5&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
                 <!-- <button onclick='removeMe(this.parentNode.id)'>X</button> -->
                 <div style="margin-top: 30px">
-                    <button onclick="Exportth()" style="width: 45%;">Export</button>
+                    <button onclick="showExport()" style="width: 45%;">Export</button>
 
                     <input id="ipo" style="display: none;" type="file" value="Import" onchange="Importte(event)">
                     <!-- <button onclick="startImport()" style="width: 45%; float: right">Import</button> -->
-                    <button onclick="alert('feature not ready yet')" style="width: 45%; float: right">Import</button>
+                    <button onclick="startImport()" style="width: 45%; float: right">Import</button>
 
                 </div>
             </div>
@@ -486,13 +702,27 @@
         <div class="bottom" style="display: flex; justify-content: center;">Created by: Aquil Roberts <br>
             <div>
                 <h3>Features to come:</h3>
-                - reordering of list items<br>
-                - adding tab-pages<br>
-                - encrypted export &amp; Import<br>
-                - excel export<br>
-                - auto assign top 5 side list<br>
+                - adding tab-pages ?<br>
+            </div>
+        </div>
+        <div id="xportDiag">
+            <div>
+                <button onclick="hideExport()" style="float: right">x</button>
+                <br>
+                <h1> Export:</h1>
+                <button onclick="hideExport();Exportte()">Encrypted</button> | 
+                <button onclick="hideExport();Exportth()">Simple</button> | 
+                <button onclick="hideExport();Exporttx()">Excel(.csv)</button>
             </div>
         </div>
     </div>
+    <script>
+        function showExport(){
+            document.getElementById("xportDiag").style.display= "block";
+        }
+        function hideExport(){
+            document.getElementById("xportDiag").style.display= "none";
+        }
+    </script>
 
 </body></html>
