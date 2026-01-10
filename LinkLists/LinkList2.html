@@ -1,122 +1,419 @@
-<html lang="en"><head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LinkList</title>
     <style>
-        .content {
-        display: inline-grid;
-        grid-row-gap: 10px;
-        grid-column-gap: 20px;
-        grid-template-columns: 30vw 30vw 30vw;
-        grid-template-areas:
-                "top top ..."
-                "main main main2"
-                "bottom bottom ...";
-        }
-        .dragging{
-            opacity: .5;
-            background-color: rgb(159, 236, 255);
+        :root{
+            --white: #ffffff;
+            --teal-950: #032a29;
+            --teal-800: #115e59;
+            --teal-700: #0f766e;
+            --teal-600: #0d9488;
+            --green-700: #15803d;
+            --green-600: #16a34a;
+            --bg: #f6fffb;
+            --text: #062a25;
+            --muted: #496a66;
+            --border: rgba(3, 42, 41, 0.14);
+            --shadow: 0 12px 35px rgba(3, 42, 41, 0.12);
+            --radius: 14px;
         }
 
-        .itemz, .draggable {
-            xcursor: move;
+        *{ box-sizing: border-box; }
+
+        html, body{
+            height: 100%;
+        }
+
+        body{
+            margin: 0;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+            color: var(--text);
+            background:
+                radial-gradient(1200px 600px at 10% 0%, rgba(13, 148, 136, 0.16), transparent 60%),
+                radial-gradient(1200px 600px at 95% 0%, rgba(22, 163, 74, 0.14), transparent 55%),
+                var(--bg);
+        }
+
+        a{ color: inherit; text-decoration: none; }
+        a:hover{ text-decoration: underline; }
+
+        .app{
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 18px 16px 40px;
+        }
+
+        .top{
+            margin-bottom: 14px;
+        }
+
+        .topBar{
             display: flex;
             align-items: center;
-            border-bottom: 2px solid rgb(153, 153, 153);
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 14px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.72);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
 
-        .draggable {
-            display: inline;
+        .brand{
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            font-weight: 800;
+            letter-spacing: 0.2px;
         }
- 
-        .main {
-            grid-area: main;
-            border: 1px dotted black;
-            display: block;
-            padding: 5px 10px;
+
+        .brandTitle{
+            font-size: 18px;
         }
-        .main2 {
-            grid-area: main2;
+
+        .versionBadge{
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--teal-800);
+            background: rgba(13, 148, 136, 0.12);
+            border: 1px solid rgba(13, 148, 136, 0.22);
+            padding: 4px 10px;
+            border-radius: 999px;
         }
-        .top {
-            grid-area: top;
+
+        .topActions{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
-        .bottom {
-            grid-area: bottom;
-        }
-        .itemME {
+
+        .content{
             display: grid;
-            align-items: center;
-            justify-content: left;
+            grid-template-columns: 1fr 380px;
+            gap: 14px;
+            align-items: start;
         }
-        .itemME > textarea {
-            align-items: center;
-            width: 29vw;
-            margin-top: 20px;
+
+        .card{
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.72);
+            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
         }
-        textarea {
-            font-family: Tahoma, sans-serif;
+
+        .panelHeader{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 14px 10px;
+            border-bottom: 1px solid rgba(3, 42, 41, 0.08);
+        }
+
+        .panelHeader.center{
+            justify-content: center;
+        }
+
+        .panelHeader h2{
+            margin: 0;
+            font-size: 16px;
+            letter-spacing: 0.2px;
+        }
+
+        .panelActions{
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .main{
+            grid-column: 1;
+            overflow: hidden;
+        }
+
+        .main2{
+            grid-column: 2;
+            overflow: hidden;
+        }
+
+        .listContainer{
+            padding: 12px 14px 14px;
+        }
+
+        .draggable{
+            display: block;
+        }
+
+        .dragging{
+            opacity: 0.6;
+            filter: saturate(1.2);
+        }
+
+        .itemz{
+            display: grid;
+            grid-template-columns: auto auto 1fr auto auto;
+            gap: 10px;
+            align-items: start;
+            padding: 10px;
+            border: 1px solid rgba(3, 42, 41, 0.10);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.85);
+            margin-bottom: 10px;
+        }
+
+        .itemz:focus-within{
+            border-color: rgba(13, 148, 136, 0.40);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.14);
+        }
+
+        textarea{
+            width: 100%;
+            resize: vertical;
+            min-height: 64px;
+            padding: 10px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(3, 42, 41, 0.16);
+            background: rgba(255,255,255,0.92);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 13px;
+            line-height: 1.35;
+            color: var(--teal-950);
+            outline: none;
+        }
+
+        textarea:focus{
+            border-color: rgba(13, 148, 136, 0.55);
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.16);
         }
 
         .updowns{
-            padding: 5px;
-            width: 6%;
+            display: grid;
+            gap: 6px;
         }
-        .updowns button{
-            width: 4vw;
-            height: 30px;
+
+        .couClass{
+            min-width: 2.6em;
+            text-align: center;
+            font-weight: 800;
+            font-size: 12px;
+            color: var(--teal-800);
+            background: rgba(13, 148, 136, 0.12);
+            border: 1px solid rgba(13, 148, 136, 0.22);
+            border-radius: 999px;
+            padding: 6px 10px;
+            align-self: start;
         }
-        .arrow {
-            border: solid black;
-            border-width: 0 3px 3px 0;
+
+        .btn{
+            appearance: none;
+            border: 1px solid rgba(3, 42, 41, 0.18);
+            background: var(--white);
+            color: var(--teal-950);
+            border-radius: 999px;
+            padding: 9px 12px;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.2px;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+            transition: transform 110ms ease, background-color 110ms ease, border-color 110ms ease, box-shadow 110ms ease;
+        }
+
+        .hiddenFileInput{
+            display: none;
+        }
+
+        .btn:hover{
+            transform: translateY(-1px);
+            border-color: rgba(13, 148, 136, 0.40);
+            box-shadow: 0 8px 18px rgba(3, 42, 41, 0.08);
+        }
+
+        .btn:active{
+            transform: translateY(0px);
+        }
+
+        .btn:focus-visible{
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.18);
+        }
+
+        .btn-ghost{
+            background: rgba(255,255,255,0.70);
+        }
+
+        .btn-primary{
+            background: linear-gradient(135deg, rgba(22, 163, 74, 0.18), rgba(13, 148, 136, 0.18));
+            border-color: rgba(13, 148, 136, 0.30);
+        }
+
+        .btn-secondary{
+            background: rgba(13, 148, 136, 0.12);
+            border-color: rgba(13, 148, 136, 0.24);
+            color: var(--teal-800);
+        }
+
+        .btn-danger{
+            background: rgba(220, 38, 38, 0.08);
+            border-color: rgba(220, 38, 38, 0.22);
+            color: #b91c1c;
+            font-size: 16px;
+            line-height: 1;
+            padding: 8px 12px;
+        }
+
+        .btn-icon{
+            width: 38px;
+            height: 34px;
+            padding: 0;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 10px;
+            font-weight: 900;
+        }
+
+        .arrow{
+            border: solid var(--teal-950);
+            border-width: 0 2px 2px 0;
             display: inline-block;
             padding: 3px;
         }
 
-        .right {
-            transform: rotate(-45deg);
-            -webkit-transform: rotate(-45deg);
+        .up{ transform: rotate(-135deg); }
+        .down{ transform: rotate(45deg); }
+
+        .itemME{
+            display: grid;
+            gap: 12px;
+            padding: 12px 14px 14px;
         }
 
-        .left {
-            transform: rotate(135deg);
-            -webkit-transform: rotate(135deg);
+        .topItem{
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            align-items: start;
         }
 
-        .up {
-            transform: rotate(-135deg);
-            -webkit-transform: rotate(-135deg);
+        .panelFooter{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 6px;
         }
 
-        .down {
-            transform: rotate(45deg);
-            -webkit-transform: rotate(45deg);
+        .bottom{
+            margin-top: 14px;
+            padding: 14px;
+            color: var(--muted);
+        }
+
+        .footerInner{
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        details{
+            color: var(--muted);
         }
 
         #xportDiag{
             display: none;
-            position: absolute;
-            width: 99%;
-            height: 99%;
-            background-color: rgba(0, 0, 0, 0.5);
-            margin: 0 auto;
+            position: fixed;
+            inset: 0;
+            background: rgba(3, 42, 41, 0.55);
+            padding: 20px;
+            z-index: 999;
         }
-        #xportDiag div{
-            text-align: center;
-            background-color: white;
-            width: 50%;
-            height: 50%;
-            opacity: 100%;
+
+        #xportDiag[aria-hidden="false"]{
+            display: grid;
+            place-items: center;
+        }
+
+        #xportDiag .modal{
+            width: min(560px, 94vw);
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.90);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 22px 80px rgba(3, 42, 41, 0.35);
+            overflow: hidden;
+        }
+
+        #xportDiag .modalHeader{
+            display: flex;
             align-items: center;
-            vertical-align: middle;
-            margin: 0 auto;
+            justify-content: space-between;
+            padding: 14px 14px;
+            border-bottom: 1px solid rgba(3, 42, 41, 0.10);
+        }
+
+        #xportDiag .modalHeader h1{
+            margin: 0;
+            font-size: 16px;
+        }
+
+        #xportDiag .modalBody{
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .exportRow{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        @media (max-width: 980px){
+            .content{ grid-template-columns: 1fr; }
+            .main, .main2{ grid-column: 1; }
+        }
+
+        @media (max-width: 560px){
+            .itemz{ grid-template-columns: 1fr; }
+            .couClass{ justify-self: start; }
+            .panelFooter{ grid-template-columns: 1fr; }
         }
     </style>
     <script>
         function q$(selector){
             let q = document.querySelector(selector);
             return q;
+        }
+
+        function getListRoot(){
+            return document.getElementById('listContainer');
+        }
+
+        function renumberItems(){
+            const items = document.querySelectorAll('#listContainer .draggable');
+            for (let i = 0; i < items.length; i++){
+                const draggable = items[i];
+                const itemz = draggable.querySelector('.itemz');
+                const textarea = draggable.querySelector('textarea');
+                const count = draggable.querySelector('.couClass');
+                if (!itemz || !textarea || !count) continue;
+                itemz.id = 'item' + i;
+                textarea.id = 'inItem' + i;
+                count.id = 'item' + i + 'count';
+            }
         }
 
         function txtCopy(txt,itm){
@@ -130,33 +427,34 @@
             /* Copy the text inside the text field */
             navigator.clipboard.writeText(copyText.value);
 
-            if (itm=="a"){ }else { CopyCounter(itm); }
+            if (!itm || itm=="a"){ }else { CopyCounter(itm); }
         } 
         function cleanTexts(tex,direction) {
+            let search1, replaceWith1, search2, replaceWith2, search3, replaceWith3, search4, replaceWith4;
             if (direction == "in"){
-                const search1 = '|/~|';
-                const replaceWith1 = '|//~|';
+                search1 = '|/~|';
+                replaceWith1 = '|//~|';
                 
-                const search2 = '(/~)';
-                const replaceWith2 = '(//~)';
+                search2 = '(/~)';
+                replaceWith2 = '(//~)';
                 
-                const search3 = '|~|';
-                const replaceWith3 = '|/~|';
+                search3 = '|~|';
+                replaceWith3 = '|/~|';
                 
-                const search4 = '(~)';
-                const replaceWith4 = '(/~)';
+                search4 = '(~)';
+                replaceWith4 = '(/~)';
             }else if (direction == "out"){
-                const search1 = '|/~|';
-                const replaceWith1 = '|~|';
+                search1 = '|/~|';
+                replaceWith1 = '|~|';
 
-                const search2 = '(/~)';
-                const replaceWith2 = '(~)';
+                search2 = '(/~)';
+                replaceWith2 = '(~)';
                 
-                const search3 = '|//~|';
-                const replaceWith3 = '|/~|';
+                search3 = '|//~|';
+                replaceWith3 = '|/~|';
                 
-                const search4 = '(//~)';
-                const replaceWith4 = '(/~)';
+                search4 = '(//~)';
+                replaceWith4 = '(/~)';
             }else {
                 alert("fun.cleanTexts doesn't have a direction.");
                 tex = "error";
@@ -433,104 +731,76 @@
                     var listAll = items[1].split("(~)"); var listload = "";
                     for (var i=0; i < listAll.length-1; i++){
                         var innerTx = listAll[i].split("|~|");
-                        listload += "<div class='draggable' draggable='true'>"+
-                        "<div class='itemz' id='item"+i+"'>"+
-                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
-                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
-                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
-                            "<textarea id='inItem"+i+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'>"+innerTx[0]+"</textarea>"+
-                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
-                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
-                            "<div id='item"+i+"count' class='couClass' style='margin-left: 5px'>"+innerTx[1]+"</div>"+
-                        "</div>"+
-                        // "<div style='display:block' class='mainBot'></div>"+
-                    "</div>"
+                        var safeText = cleanTexts(innerTx[0] ?? "", 'out');
+                        var safeCount = cleanTexts(innerTx[1] ?? "0", 'out');
+                        listload += `
+<div class="draggable" draggable="true">
+    <div class="itemz" id="item${i}">
+        <button class="btn btn-secondary" type="button" onclick="txtCopy(this.closest('.itemz').querySelector('textarea').id, this.closest('.itemz').id)">Copy</button>
+        <div class="updowns">
+            <button class="btn btn-icon btn-ghost" type="button" onclick="MThis('top', this)" title="Move up"><i class="arrow up"></i></button>
+            <button class="btn btn-icon btn-ghost" type="button" onclick="MThis('bot', this)" title="Move down"><i class="arrow down"></i></button>
+        </div>
+        <textarea id="inItem${i}" rows="3" maxlength="99990" placeholder="Paste a link or note...">${safeText}</textarea>
+        <button class="btn btn-danger btn-icon" type="button" onclick="removeMe(this.closest('.itemz').id)" title="Remove">×</button>
+        <div id="item${i}count" class="couClass">${safeCount}</div>
+    </div>
+</div>`;
                     }
-                    document.querySelector(".main div").innerHTML = listload;
+                    getListRoot().innerHTML = listload;
 
                     var listTop = items[2].split("(~)");
                     for (var i=0; i < 5; i++){
                         var onA = i+1;
                         var item = listTop[i].split("|~|");
-                        var lTop = item[0];
+                        var lTop = cleanTexts(item[0] ?? "", 'out');
                         document.querySelector("#iItem"+onA).value = lTop;
                     }
         }
 
         function removeMe(nod){
-            document.getElementById(nod).remove();
-            var izCount = document.querySelectorAll(".draggable").length;
-                for (var h = 0; h < izCount; h++){
-                    dragCheck = document.querySelector(".draggable:nth-child("+h+")");
-                    if (dragCheck.innerHTML == ""){
-                        document.querySelector("div.draggable:nth-child("+h+")").remove();
-                    }
-                    
-                }
+            const item = document.getElementById(nod);
+            if (!item) return;
+            const draggable = item.closest('.draggable');
+            if (draggable){
+                draggable.remove();
+            } else {
+                item.remove();
+            }
+            renumberItems();
         }
 
-        function itemTemplate (num){
-            if (num==null){num = 0;}
-            return "<div><div class='draggable' draggable='true'>"+
-                        "<div class='itemz' id='item"+num+"'>"+
-                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
-                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
-                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
-                            "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
-                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
-                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
-                            "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
-                        "</div></div>"+
-                        "</div><div style='display:block' class='mainBot'></div>"+
-                    "</xdiv>";
-        }
         function itemTemplateS (num){
             if (num==null){num = 0;}
-            return "<div class='draggable' draggable='true'>"+
-                        "<div class='itemz' id='item"+num+"'>"+
-                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='Copy' style=''/>"+
-                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
-                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
-                            "<textarea id='inItem"+num+"' style='width: 90%; min-width: 75%; min-height: 15px; margin: 5px' rows='3' maxlength = '99990'></textarea>"+
-                            // "<button onclick='removeMe(this.closest('.draggable'))'>X</button>"+
-                            "<button onclick='removeMe(this.parentNode.id)'>X</button>"+
-                            "<div id='item"+num+"count' class='couClass' style='margin-left: 5px'>0</div>"+
-                        "</div>"+
-                        // "<div style='display:block' class='mainBot'></div>"+
-                    "</div>";
-        }
-
-        function addMore(si){
-            return "<button onclick=\"appendItem("+si+")\" >+</button>";
+            return `
+<div class="draggable" draggable="true">
+    <div class="itemz" id="item${num}">
+        <button class="btn btn-secondary" type="button" onclick="txtCopy(this.closest('.itemz').querySelector('textarea').id, this.closest('.itemz').id)">Copy</button>
+        <div class="updowns">
+            <button class="btn btn-icon btn-ghost" type="button" onclick="MThis('top', this)" title="Move up"><i class="arrow up"></i></button>
+            <button class="btn btn-icon btn-ghost" type="button" onclick="MThis('bot', this)" title="Move down"><i class="arrow down"></i></button>
+        </div>
+        <textarea id="inItem${num}" rows="3" maxlength="99990" placeholder="Paste a link or note..."></textarea>
+        <button class="btn btn-danger btn-icon" type="button" onclick="removeMe(this.closest('.itemz').id)" title="Remove">×</button>
+        <div id="item${num}count" class="couClass">0</div>
+    </div>
+</div>`;
         }
 
         function appendItem(di){
             if (di=="bot"){
                 var izemCount = document.querySelectorAll(".itemz").length;
-                var io = 0;
-                for (var h = 0; h < izemCount; h++){
-                    io=h+1;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
-                }
-                q$(".main div").insertAdjacentHTML('beforeend',itemTemplateS(izemCount++));
-                document.querySelector("div.draggable:nth-last-child(1) div.itemz textarea").focus();
+                getListRoot().insertAdjacentHTML('beforeend',itemTemplateS(izemCount++));
+                renumberItems();
+                document.querySelector("#listContainer .draggable:nth-last-child(1) textarea").focus();
                 // nowDrag();
             }
             if (di=="top"){
                 var izemCount = document.querySelectorAll(".itemz").length;
                 // var izemCount = document.getElementsByClassName("itemz").length;
-                var io = 0;
-                q$(".main div").insertAdjacentHTML('afterbegin',itemTemplateS(izemCount++));
-
-                for (var h = 0; h < izemCount; h++){
-                    io=h+1;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
-                    document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
-                }
-                document.querySelector("div.draggable:nth-child(1) div.itemz textarea").focus();
+                getListRoot().insertAdjacentHTML('afterbegin',itemTemplateS(izemCount++));
+                renumberItems();
+                document.querySelector("#listContainer .draggable:nth-child(1) textarea").focus();
 
                 // nowDrag();
             }
@@ -547,15 +817,7 @@
                 me.closest(".draggable").parentNode.insertBefore(me.closest(".draggable").nextSibling, me.closest(".draggable"));
 
             }
-            var izemCount = document.querySelectorAll(".itemz").length;
-
-            var io = 0;
-            for (var h = 0; h < izemCount; h++){
-                io=h+1;
-                document.querySelector("div.draggable:nth-child("+io+") div.itemz").id = "item"+h;
-                document.querySelector("div.draggable:nth-child("+io+") div.itemz textarea").id = "inItem"+h;
-                document.querySelector("div.draggable:nth-child("+io+") div.itemz .couClass").id = "item"+h+"count";
-            }
+            renumberItems();
         }
 
          /**Now Drag to allow for dragging listed item*
@@ -622,7 +884,7 @@
             for (var i=1; i <= NumberCounts; i++){
                 var q = i-1;
                 var nu = document.getElementById("item"+q+"count").innerHTML;
-                var obj ={"count" : nu , "loc":"item"+q+"count"};
+                var obj ={"count" : parseInt(nu, 10) || 0 , "loc":"item"+q+"count"};
                 five.push(obj);
             }
             
@@ -633,7 +895,8 @@
                 var onA = a+1;
                 try{
                  //code that causes an error
-                  var vvals = document.querySelector("#"+five[a]['loc']).previousSibling.previousSibling.value;
+                  var countEl = document.getElementById(five[a]['loc']);
+                  var vvals = countEl.closest('.itemz').querySelector('textarea').value;
                 }catch(e){
                     console.log("error occured");
                     // functionToHandleError(e);
@@ -656,9 +919,10 @@
         ready(() => { 
         /* Do things after DOM has fully loaded */
         if (load == 0){
-            q$(".main").innerHTML = itemTemplate();
-            q$(".main").insertAdjacentHTML('afterbegin',addMore("\'top\'"));
-            q$(".mainBot").insertAdjacentHTML('beforeend',addMore("\'bot\'"));
+            // Start with one item.
+            if (document.querySelectorAll('#listContainer .itemz').length === 0){
+                appendItem('bot');
+            }
             // nowDrag();
         }
         });
@@ -666,63 +930,106 @@
     </script>
 </head>
 <body>
-    <div class="content">
-        <div class="top" style="display: flex; justify-content: center;">
-            <a href="javascript:window.location.href=window.location.href">New</a>* Version 2.01 *<a onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">Download</a>
-        </div>
-        <div class="main container"><button onclick="appendItem('top')">+</button><div><div class="draggable" draggable="true"><div class="itemz" id="item0"><input onclick="txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)" type="button" value="Copy" style=""><div class="updowns"><button onclick="MThis(&quot;top&quot;, this)"><i class="arrow up"></i></button><button onclick="MThis(&quot;bot&quot;, this)"><i class="arrow down"></i></button></div><textarea id="inItem0" style="width: 90%; min-width: 75%; min-height: 15px; margin: 5px" rows="3" maxlength="99990"></textarea><button onclick="removeMe(this.parentNode.id)">X</button><div id="item0count" class="couClass" style="margin-left: 5px">0</div></div></div></div><div style="display:block" class="mainBot"><button onclick="appendItem('bot')">+</button></div></div>
-        <div class="main2">
-
-            <div style="display: flex; justify-content: center;">
-                <h2>Top 5</h2>
-            </div>
-
-            <div class="itemME" id="itemME" draggable="false">
-                <textarea id="iItem1" maxlength="99990"></textarea>
-                <input onclick="txtCopy(q$(&quot;#iItem1&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
-                <textarea id="iItem2" maxlength="99990"></textarea>
-                <input onclick="txtCopy(q$(&quot;#iItem2&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
-                <textarea id="iItem3" maxlength="99990"></textarea>
-                <input onclick="txtCopy(q$(&quot;#iItem3&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
-                <textarea id="iItem4" maxlength="99990"></textarea>
-                <input onclick="txtCopy(q$(&quot;#iItem4&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
-                <textarea id="iItem5" maxlength="99990"></textarea>
-                <input onclick="txtCopy(q$(&quot;#iItem5&quot;).id,&quot;a&quot;)" type="button" value="Copy"> 
-                <!-- <button onclick='removeMe(this.parentNode.id)'>X</button> -->
-                <div style="margin-top: 30px">
-                    <button onclick="showExport()" style="width: 45%;">Export</button>
-
-                    <input id="ipo" style="display: none;" type="file" value="Import" onchange="Importte(event)">
-                    <!-- <button onclick="startImport()" style="width: 45%; float: right">Import</button> -->
-                    <button onclick="startImport()" style="width: 45%; float: right">Import</button>
-
+    <div class="app">
+        <header class="top">
+            <div class="topBar">
+                <div class="brand" aria-label="LinkList header">
+                    <div class="brandTitle">LinkList</div>
+                    <div class="versionBadge">Version 2.01</div>
+                </div>
+                <div class="topActions">
+                    <button class="btn btn-ghost" type="button" onclick="window.location.href=window.location.href">New</button>
+                    <a class="btn btn-ghost" onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">Download</a>
                 </div>
             </div>
-        </div>
-        <div class="bottom" style="display: flex; justify-content: center;">Created by: Aquil Roberts <br>
-            <div>
-                <h3>Features to come:</h3>
-                - adding tab-pages ?<br>
+        </header>
+
+        <main class="content">
+            <section class="main container card" aria-label="Your list">
+                <div class="panelHeader">
+                    <h2>Your List</h2>
+                    <div class="panelActions">
+                        <button class="btn btn-primary" type="button" onclick="appendItem('top')">Add Top</button>
+                        <button class="btn btn-primary" type="button" onclick="appendItem('bot')">Add Bottom</button>
+                    </div>
+                </div>
+                <div id="listContainer" class="listContainer">
+                    <!-- items injected by JS -->
+                </div>
+            </section>
+
+            <aside class="main2 card" aria-label="Top five">
+                <div class="panelHeader center">
+                    <h2>Top 5</h2>
+                </div>
+
+                <div class='itemME' id='itemME' draggable='false'>
+                    <div class="topItem">
+                        <textarea id='iItem1' maxlength='99990' placeholder="Top item #1"></textarea>
+                        <button class="btn btn-secondary" type="button" onclick='txtCopy(q$("#iItem1").id,"a")'>Copy</button>
+                    </div>
+                    <div class="topItem">
+                        <textarea id='iItem2' maxlength='99990' placeholder="Top item #2"></textarea>
+                        <button class="btn btn-secondary" type="button" onclick='txtCopy(q$("#iItem2").id,"a")'>Copy</button>
+                    </div>
+                    <div class="topItem">
+                        <textarea id='iItem3' maxlength='99990' placeholder="Top item #3"></textarea>
+                        <button class="btn btn-secondary" type="button" onclick='txtCopy(q$("#iItem3").id,"a")'>Copy</button>
+                    </div>
+                    <div class="topItem">
+                        <textarea id='iItem4' maxlength='99990' placeholder="Top item #4"></textarea>
+                        <button class="btn btn-secondary" type="button" onclick='txtCopy(q$("#iItem4").id,"a")'>Copy</button>
+                    </div>
+                    <div class="topItem">
+                        <textarea id='iItem5' maxlength='99990' placeholder="Top item #5"></textarea>
+                        <button class="btn btn-secondary" type="button" onclick='txtCopy(q$("#iItem5").id,"a")'>Copy</button>
+                    </div>
+
+                    <div class="panelFooter">
+                        <button class="btn btn-primary" type="button" onclick="showExport()">Export</button>
+
+                        <input id='ipo' class="hiddenFileInput" type="file" value="Import" onchange="Importte(event)">
+                        <button class="btn btn-secondary" type="button" onclick="startImport()">Import</button>
+                    </div>
+                </div>
+            </aside>
+        </main>
+
+        <footer class="bottom card">
+            <div class="footerInner">
+                <div>Created by: Aquil Roberts</div>
+                <details>
+                    <summary>Features to come</summary>
+                    <div>- adding tab-pages ?</div>
+                </details>
             </div>
-        </div>
-        <div id="xportDiag">
-            <div>
-                <button onclick="hideExport()" style="float: right">x</button>
-                <br>
-                <h1> Export:</h1>
-                <button onclick="hideExport();Exportte()">Encrypted</button> | 
-                <button onclick="hideExport();Exportth()">Simple</button> | 
-                <button onclick="hideExport();Exporttx()">Excel(.csv)</button>
+        </footer>
+
+        <div id="xportDiag" aria-hidden="true">
+            <div class="modal" role="dialog" aria-label="Export options">
+                <div class="modalHeader">
+                    <h1>Export</h1>
+                    <button class="btn btn-ghost" type="button" onclick="hideExport()">Close</button>
+                </div>
+                <div class="modalBody">
+                    <div class="exportRow">
+                        <button class="btn btn-primary" type="button" onclick="hideExport();Exportte()">Encrypted</button>
+                        <button class="btn btn-primary" type="button" onclick="hideExport();Exportth()">Simple</button>
+                        <button class="btn btn-primary" type="button" onclick="hideExport();Exporttx()">Excel (.csv)</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <script>
         function showExport(){
-            document.getElementById("xportDiag").style.display= "block";
+            const d = document.getElementById("xportDiag");
+            d.setAttribute('aria-hidden', 'false');
         }
         function hideExport(){
-            document.getElementById("xportDiag").style.display= "none";
+            const d = document.getElementById("xportDiag");
+            d.setAttribute('aria-hidden', 'true');
         }
     </script>
-
-</body></html>
+</body>
+</html>
