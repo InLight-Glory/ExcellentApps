@@ -1,0 +1,2072 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="fintech">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkList</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="LinkList - A smart clipboard manager with copy counting and organization">
+    <meta name="theme-color" content="#635BFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LinkList">
+    
+    <!-- PWA Icons (using inline SVG data URIs for portability) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23635BFF'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>📋</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23635BFF'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>📋</text></svg>">
+    
+    <style>
+        /* ===== CSS Variables for Color Theme ===== */
+        :root {
+            /* Theme-agnostic tokens */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --transition: all 0.2s ease;
+        }
+
+        /* ===== Theme: Fintech Trust ===== */
+        [data-theme="fintech"] {
+            --color-primary: #635BFF;       /* Cornflower */
+            --color-primary-dark: #0A2540;  /* Downriver */
+            --color-primary-light: #8B85FF; /* Lighter Cornflower */
+            --color-accent: #00A699;        /* Teal */
+            --color-accent-dark: #008578;   /* Dark Teal */
+            --color-accent-light: #33C4B8;  /* Light Teal */
+            --color-white: #ffffff;
+            --color-gray-50: #F6F9FC;       /* Black Squeeze */
+            --color-gray-100: #EDF2F7;
+            --color-gray-200: #E2E8F0;
+            --color-gray-300: #CBD5E1;
+            --color-gray-600: #374854;      /* Slate */
+            --color-gray-800: #0A2540;      /* Downriver */
+            --bg-gradient: linear-gradient(135deg, #F6F9FC 0%, #E0E7FF 100%);
+        }
+
+        /* ===== Theme: Productivity Dark ===== */
+        [data-theme="productivity"] {
+            --color-primary: #5E6AD2;       /* Electric Indigo */
+            --color-primary-dark: #4850A8;
+            --color-primary-light: #7E88E0;
+            --color-accent: #5E6AD2;        /* Electric Indigo */
+            --color-accent-dark: #4850A8;
+            --color-accent-light: #7E88E0;
+            --color-white: #1C1C1F;         /* Shark - Cards */
+            --color-gray-50: #0E0C0C;       /* Woodsmoke - Main BG */
+            --color-gray-100: #1C1C1F;      /* Shark */
+            --color-gray-200: #2D2D32;
+            --color-gray-300: #3D3D44;
+            --color-gray-600: #8F919C;      /* Oslo Gray */
+            --color-gray-800: #F7F8F8;      /* Black Haze - Text */
+            --bg-gradient: linear-gradient(135deg, #0E0C0C 0%, #1C1C1F 100%);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* ===== Theme: Human Connection ===== */
+        [data-theme="human"] {
+            --color-primary: #FF5A5F;       /* Rausch Coral */
+            --color-primary-dark: #E04347;
+            --color-primary-light: #FF8589;
+            --color-accent: #00A699;        /* Teal */
+            --color-accent-dark: #008578;
+            --color-accent-light: #33C4B8;
+            --color-white: #ffffff;
+            --color-gray-50: #FFFFFF;
+            --color-gray-100: #F7F7F7;
+            --color-gray-200: #EBEBEB;
+            --color-gray-300: #DDDDDD;
+            --color-gray-600: #767676;      /* Hof */
+            --color-gray-800: #484848;      /* Foggy Grey */
+            --bg-gradient: linear-gradient(135deg, #FFFFFF 0%, #FFF0F0 100%);
+        }
+
+        /* ===== Theme: Biophilic Calm ===== */
+        [data-theme="biophilic"] {
+            --color-primary: #88AC88;       /* Sage Green */
+            --color-primary-dark: #6B8F6B;
+            --color-primary-light: #A5C4A5;
+            --color-accent: #C6855A;        /* Terracotta */
+            --color-accent-dark: #A86D45;
+            --color-accent-light: #F9CB9C;  /* Soft Peach */
+            --color-white: #FDF8F3;
+            --color-gray-50: #F7E3CE;       /* Cream/Sand */
+            --color-gray-100: #F0D9BE;
+            --color-gray-200: #E5CBAA;
+            --color-gray-300: #D4B896;
+            --color-gray-600: #5A7048;
+            --color-gray-800: #344F1F;      /* Deep Forest */
+            --bg-gradient: linear-gradient(135deg, #F7E3CE 0%, #E8D4B8 100%);
+        }
+
+        /* ===== Theme: Digital Avant-Garde ===== */
+        [data-theme="avantgarde"] {
+            --color-primary: #00FF9F;       /* Neon Green */
+            --color-primary-dark: #00CC7F;
+            --color-primary-light: #33FFAF;
+            --color-accent: #BD00FF;        /* Hot Pink */
+            --color-accent-dark: #9700CC;
+            --color-accent-light: #D433FF;
+            --color-white: #0A0A0A;
+            --color-gray-50: #000000;       /* Void Black */
+            --color-gray-100: #0A0A0A;
+            --color-gray-200: #1A1A1A;
+            --color-gray-300: #2A2A2A;
+            --color-gray-600: #888888;
+            --color-gray-800: #FFFFFF;      /* White text */
+            --bg-gradient: linear-gradient(135deg, #000000 0%, #1A0A1A 100%);
+            --shadow-md: 0 4px 20px rgba(0, 255, 159, 0.15);
+            --shadow-lg: 0 10px 40px rgba(189, 0, 255, 0.2);
+        }
+
+        /* ===== Base Styles ===== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: var(--color-gray-800);
+            line-height: 1.6;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        /* ===== Theme Selector ===== */
+        .theme-selector {
+            position: absolute;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-selector label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-gray-600);
+        }
+
+        .theme-selector select {
+            padding: 8px 12px;
+            border: 2px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            background: var(--color-white);
+            color: var(--color-gray-800);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .theme-selector select:hover {
+            border-color: var(--color-primary);
+        }
+
+        .theme-selector select:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.15);
+        }
+
+        /* ===== Layout Grid ===== */
+        .content {
+            display: grid;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            grid-template-columns: 1fr 1fr 320px;
+            grid-template-areas:
+                "top top top"
+                "main main main2"
+                "bottom bottom bottom";
+        }
+
+        /* ===== Header Section ===== */
+        .top {
+            grid-area: top;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            background: var(--color-white);
+            padding: 16px 24px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            position: relative;
+            transition: background 0.3s ease;
+        }
+
+        .top a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+
+        .top a:hover {
+            background: var(--color-primary);
+            color: var(--color-white);
+        }
+
+        .version-badge {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: var(--color-white);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* ===== Main List Container ===== */
+        .main {
+            grid-area: main;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+            min-height: 400px;
+        }
+
+        .main.container > div {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* ===== Draggable Items ===== */
+        .draggable {
+            transition: var(--transition);
+        }
+
+        .dragging {
+            opacity: 0.5;
+            background: var(--color-primary-light);
+            border-radius: var(--radius-md);
+        }
+
+        .itemz {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: var(--color-gray-50);
+            border: 2px solid var(--color-gray-200);
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+        }
+
+        .itemz:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== Buttons ===== */
+        button, input[type="button"] {
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            transition: var(--transition);
+        }
+
+        /* Copy Button */
+        .itemz input[type="button"],
+        .itemME input[type="button"] {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: var(--color-white);
+            min-width: 60px;
+        }
+
+        .itemz input[type="button"]:hover,
+        .itemME input[type="button"]:hover {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Delete Button */
+        .itemz > button {
+            background: var(--color-gray-200);
+            color: var(--color-gray-600);
+            padding: 8px 12px;
+            min-width: 36px;
+        }
+
+        .itemz > button:hover {
+            background: #ef4444;
+            color: var(--color-white);
+        }
+
+        /* Add Buttons (+) */
+        .main > button,
+        .mainBot > button {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+            color: var(--color-white);
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            border-radius: var(--radius-md);
+            margin: 8px 0;
+        }
+
+        .main > button:hover,
+        .mainBot > button:hover {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* ===== Up/Down Arrows ===== */
+        .updowns {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .updowns button {
+            background: var(--color-gray-100);
+            border: 1px solid var(--color-gray-300);
+            padding: 6px 10px;
+            border-radius: 4px;
+        }
+
+        .updowns button:hover {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+        }
+
+        .updowns button:hover .arrow {
+            border-color: var(--color-white);
+        }
+
+        .arrow {
+            border: solid var(--color-primary-dark);
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 3px;
+            transition: var(--transition);
+        }
+
+        .up { transform: rotate(-135deg); }
+        .down { transform: rotate(45deg); }
+        .left { transform: rotate(135deg); }
+        .right { transform: rotate(-45deg); }
+
+        /* ===== Textareas ===== */
+        textarea {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            font-size: 0.95rem;
+            flex: 1;
+            min-height: 50px;
+            padding: 12px;
+            border: 2px solid var(--color-gray-200);
+            border-radius: var(--radius-sm);
+            resize: vertical;
+            transition: var(--transition);
+            background: var(--color-white);
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+        }
+
+        /* ===== Copy Counter ===== */
+        .couClass {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+            color: var(--color-white);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* ===== Top 5 Sidebar ===== */
+        .main2 {
+            grid-area: main2;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+        }
+
+        .main2 h2 {
+            text-align: center;
+            color: var(--color-primary-dark);
+            margin-bottom: 16px;
+            font-size: 1.5rem;
+            position: relative;
+        }
+
+        .main2 h2::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        .itemME {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .itemME > textarea {
+            width: 100%;
+            min-height: 60px;
+        }
+
+        .itemME > input[type="button"] {
+            margin-bottom: 8px;
+        }
+
+        /* ===== Export/Import Buttons ===== */
+        .itemME > div {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid var(--color-gray-200);
+        }
+
+        .itemME > div button {
+            flex: 1;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: var(--color-white);
+            padding: 12px;
+        }
+
+        .itemME > div button:hover {
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ===== Footer ===== */
+        .bottom {
+            grid-area: bottom;
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .bottom h3 {
+            color: var(--color-primary);
+            margin: 16px 0 8px;
+        }
+
+        /* ===== Tabs System ===== */
+        .tabs-container {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: flex-end;
+            gap: 4px;
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        .tab-btn {
+            padding: 10px 16px;
+            background: var(--color-gray-100);
+            border: 2px solid var(--color-gray-200);
+            border-bottom: 2px solid var(--color-gray-200);
+            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            color: var(--color-gray-600);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .tab-btn:hover {
+            background: var(--color-gray-50);
+            color: var(--color-primary);
+        }
+
+        .tab-btn.active {
+            background: var(--color-white);
+            color: var(--color-primary);
+            border-color: var(--color-primary);
+            border-bottom-color: var(--color-white);
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .tab-btn .tab-close {
+            margin-left: 8px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            background: transparent;
+            color: var(--color-gray-600);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .tab-btn .tab-close:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .add-tab-btn {
+            padding: 10px 14px;
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+            color: var(--color-white);
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .add-tab-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .tab-content {
+            display: none !important;
+            border: 2px solid var(--color-primary);
+            border-top: none;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: 16px;
+            background: var(--color-gray-50);
+            margin-top: -2px;
+        }
+
+        .tab-content.active {
+            display: block !important;
+        }
+
+        /* ===== Toast Notification ===== */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+            color: white;
+            padding: 14px 28px;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Copy highlight animation */
+        @keyframes copyHighlight {
+            0% { 
+                box-shadow: 0 0 0 0 var(--color-accent);
+                border-color: var(--color-accent);
+            }
+            50% { 
+                box-shadow: 0 0 20px 5px var(--color-accent-light);
+                border-color: var(--color-accent);
+            }
+            100% { 
+                box-shadow: 0 0 0 0 transparent;
+                border-color: var(--color-gray-200);
+            }
+        }
+
+        .copy-flash {
+            animation: copyHighlight 0.8s ease;
+        }
+
+        /* ===== Color Tags ===== */
+        .tag-selector {
+            position: relative;
+            margin-right: 8px;
+        }
+
+        .tag-dropdown {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--color-gray-300);
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 0;
+            background-size: 60%;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: var(--transition);
+        }
+
+        .tag-dropdown:hover {
+            transform: scale(1.1);
+            border-color: var(--color-primary);
+        }
+
+        .tag-dropdown:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(99, 91, 255, 0.2);
+        }
+
+        .tag-dropdown.tag-none { background-color: var(--color-gray-200); }
+        .tag-dropdown.tag-red { background-color: #ef4444; border-color: #dc2626; }
+        .tag-dropdown.tag-orange { background-color: #f97316; border-color: #ea580c; }
+        .tag-dropdown.tag-yellow { background-color: #eab308; border-color: #ca8a04; }
+        .tag-dropdown.tag-green { background-color: #22c55e; border-color: #16a34a; }
+        .tag-dropdown.tag-blue { background-color: #3b82f6; border-color: #2563eb; }
+        .tag-dropdown.tag-purple { background-color: #a855f7; border-color: #9333ea; }
+
+        .itemz.tagged-red { border-left: 4px solid #ef4444; }
+        .itemz.tagged-orange { border-left: 4px solid #f97316; }
+        .itemz.tagged-yellow { border-left: 4px solid #eab308; }
+        .itemz.tagged-green { border-left: 4px solid #22c55e; }
+        .itemz.tagged-blue { border-left: 4px solid #3b82f6; }
+        .itemz.tagged-purple { border-left: 4px solid #a855f7; }
+
+        /* ===== Character Count ===== */
+        .char-count {
+            font-size: 0.75rem;
+            color: var(--color-gray-600);
+            text-align: right;
+            margin-top: -8px;
+            margin-bottom: 4px;
+            padding-right: 4px;
+        }
+
+        /* ===== Drag & Drop ===== */
+        .draggable {
+            cursor: grab;
+        }
+
+        .draggable:active {
+            cursor: grabbing;
+        }
+
+        .dragging {
+            opacity: 0.5;
+            background: var(--color-primary-light);
+            border-radius: var(--radius-md);
+        }
+
+        .drag-over {
+            border-top: 3px solid var(--color-primary);
+        }
+
+        /* ===== Export Dialog Modal ===== */
+        #xportDiag {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #xportDiag > div {
+            background: var(--color-white);
+            border-radius: var(--radius-lg);
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+            animation: modalSlide 0.3s ease;
+        }
+
+        @keyframes modalSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        #xportDiag h1 {
+            color: var(--color-primary-dark);
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        #xportDiag button {
+            margin: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-accent) 100%);
+            color: var(--color-white);
+        }
+
+        #xportDiag button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        #xportDiag > div > button:first-child {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--color-gray-200);
+            color: var(--color-gray-600);
+            padding: 8px 12px;
+            border-radius: 50%;
+        }
+
+        #xportDiag > div {
+            position: relative;
+        }
+
+        /* ===== Responsive Design ===== */
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+                grid-template-areas:
+                    "top"
+                    "main2"
+                    "main"
+                    "bottom";
+            }
+
+            .main2 {
+                order: -1;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .content {
+                padding: 10px;
+            }
+
+            .itemz {
+                flex-wrap: wrap;
+            }
+
+            .top {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+    <script>
+        function q$(selector){
+            let q = document.querySelector(selector);
+            return q;
+        }
+
+        function txtCopy(txt,itm){
+            var copyText = document.getElementById(txt);
+            if (!copyText) return;
+            
+            /* Select the text field */
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); /* For mobile devices */
+            
+            /* Copy the text inside the text field */
+            navigator.clipboard.writeText(copyText.value);
+
+            /* Add highlight animation */
+            copyText.classList.add('copy-flash');
+            setTimeout(() => {
+                copyText.classList.remove('copy-flash');
+            }, 800);
+
+            /* Show toast notification */
+            showToast('📋 Copied to clipboard!');
+
+            if (itm=="a"){ }else { CopyCounter(itm); }
+        }
+
+        function showToast(message) {
+            // Remove existing toast if any
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Hide after 1.5 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 1500);
+        } 
+        function cleanTexts(tex, direction) {
+            let search1, replaceWith1, search2, replaceWith2, search3, replaceWith3, search4, replaceWith4;
+            
+            if (direction === "in") {
+                search1 = '|/~|';
+                replaceWith1 = '|//~|';
+                search2 = '(/~)';
+                replaceWith2 = '(//~)';
+                search3 = '|~|';
+                replaceWith3 = '|/~|';
+                search4 = '(~)';
+                replaceWith4 = '(/~)';
+            } else if (direction === "out") {
+                search1 = '|/~|';
+                replaceWith1 = '|~|';
+                search2 = '(/~)';
+                replaceWith2 = '(~)';
+                search3 = '|//~|';
+                replaceWith3 = '|/~|';
+                search4 = '(//~)';
+                replaceWith4 = '(/~)';
+            } else {
+                alert("cleanTexts() requires a direction ('in' or 'out').");
+                return "error";
+            }
+            
+            // Apply replacements safely
+            tex = tex.replaceAll(search1, replaceWith1);
+            tex = tex.replaceAll(search2, replaceWith2);
+            tex = tex.replaceAll(search3, replaceWith3);
+            tex = tex.replaceAll(search4, replaceWith4);
+            
+            return tex;
+        }
+
+        function savepage() {
+            // saveDocument();
+        }
+
+        function encrypt(string) {
+            string = unescape(encodeURIComponent(string));
+            var newString = '',
+                char, nextChar, combinedCharCode;
+            for (var i = 0; i < string.length; i += 2) {
+                char = string.charCodeAt(i);
+
+                if ((i + 1) < string.length) {
+                    nextChar = string.charCodeAt(i + 1) - 31;
+                    combinedCharCode = char + "" + nextChar.toLocaleString('en', {
+                        minimumIntegerDigits: 2
+                    });
+                    newString += String.fromCharCode(parseInt(combinedCharCode, 10));
+                } else {
+                    newString += string.charAt(i);
+                }
+            }
+            return newString.split("").reduce((hex,c)=>hex+=c.charCodeAt(0).toString(16).padStart(4,"0"),"");
+        }
+
+        function decrypt(string) {
+
+            var newString = '',
+            char, codeStr, firstCharCode, lastCharCode;
+            string = string.match(/.{1,4}/g).reduce((acc,char)=>acc+String.fromCharCode(parseInt(char, 16)),"");
+            for (var i = 0; i < string.length; i++) {
+            char = string.charCodeAt(i);
+            if (char > 132) {
+                codeStr = char.toString(10);
+
+                firstCharCode = parseInt(codeStr.substring(0, codeStr.length - 2), 10);
+
+                lastCharCode = parseInt(codeStr.substring(codeStr.length - 2, codeStr.length), 10) + 31;
+
+                newString += String.fromCharCode(firstCharCode) + String.fromCharCode(lastCharCode);
+            } else {
+                newString += string.charAt(i);
+            }
+            }
+            return newString;
+        }
+
+        function HumanDate(uni) {
+            uni = uni.toString();
+            uni = uni.slice(0, -3);
+            uni = parseInt(uni);
+
+            const milliseconds = uni * 1000; // 1575909015000
+            const dateObject = new Date(milliseconds);
+            const humanDateFormat = dateObject.toLocaleString(); //2019-12-9 10:30:15
+            return humanDateFormat;
+        }
+
+        function Exportte() {
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
+            
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                // Version 3 format: saves all tabs
+                var exportData = {
+                    version: 3,
+                    timestamp: dateNowz,
+                    tabs: [],
+                    top5: []
+                };
+                
+                // Save all tabs
+                const allTabs = document.querySelectorAll('.tab-content');
+                const allTabBtns = document.querySelectorAll('.tab-btn');
+                
+                allTabs.forEach((tabContent, index) => {
+                    const tabBtn = allTabBtns[index];
+                    const tabName = tabBtn ? tabBtn.textContent.replace('✕', '').trim() : 'List ' + (index + 1);
+                    const tabId = tabContent.id;
+                    
+                    var tabData = {
+                        id: tabId,
+                        name: tabName,
+                        items: []
+                    };
+                    
+                    // Get all items in this tab
+                    const items = tabContent.querySelectorAll('.itemz');
+                    items.forEach((item) => {
+                        const textarea = item.querySelector('textarea');
+                        const counter = item.querySelector('.couClass');
+                        const tagDropdown = item.querySelector('.tag-dropdown');
+                        
+                        if (textarea) {
+                            var itemData = {
+                                text: cleanTexts(textarea.value, 'in'),
+                                count: counter ? counter.textContent : '0',
+                                tag: tagDropdown ? tagDropdown.value : 'none'
+                            };
+                            tabData.items.push(itemData);
+                        }
+                    });
+                    
+                    exportData.tabs.push(tabData);
+                });
+                
+                // Save Top 5
+                for (var i = 1; i <= 5; i++) {
+                    const topItem = document.querySelector('#iItem' + i);
+                    if (topItem) {
+                        exportData.top5.push(cleanTexts(topItem.value, 'in'));
+                    }
+                }
+                
+                // Convert to string and encrypt
+                var SaveTxt = JSON.stringify(exportData);
+                var Tencrypted = encrypt(SaveTxt); 
+
+                // console.log(SaveTxt);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tencrypted], { type: 'text/plain' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName;
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
+        }
+        function Exportth() {
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
+            
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                var txtAreaCount = document.querySelectorAll("textarea").length;
+                var nTxt = document.getElementsByTagName("textarea");
+                var nTcount = document.querySelectorAll(".couClass");
+                var SaveTxt = ""; let cou;
+                var SaveTxtTop = "";
+                for (var i=0; i < txtAreaCount; i++){
+                    var ic = i+1;
+                    // console.log("i is "+i);
+                    try {
+                        cou = nTcount[i].textContent;
+                        cou = cou.toString();
+                    }
+                    catch (err){
+                        cou = undefined;
+                    }
+                    if (cou != undefined){
+                        SaveTxt += nTxt[i].value + " : " + nTcount[i].textContent + " ;\n\n";
+                    }else {
+                        ic = -txtAreaCount+i+6;
+                        SaveTxtTop += ic+") "+nTxt[i].value + "\n";
+                    }
+                }
+                var Tsimple = Hdf +"\n\n"+ SaveTxtTop +"\n\n"+ SaveTxt; 
+
+                // console.log(Tsimple);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tsimple], { type: 'text/plain' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName;
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
+        
+        }
+        function Exporttx(){
+            var dateNowz = new Date().getTime();
+            let Hdf = HumanDate(dateNowz);
+            UpdateTopFive();
+            var sFileName = prompt("Name the export here: ", Hdf+" Export");
+
+            if (sFileName != null) {
+                var txtAreaCount = document.querySelectorAll("textarea").length;
+                var nTxt = document.getElementsByTagName("textarea");
+                var nTcount = document.querySelectorAll(".couClass");
+                var SaveTxt = ""; let cou;
+                var SaveTxtTop = "";
+                for (var i=0; i < txtAreaCount; i++){
+                    var ic = i+1;
+                    // console.log("i is "+i);
+                    try {
+                        cou = nTcount[i].textContent;
+                        cou = cou.toString();
+                    }
+                    catch (err){
+                        cou = undefined;
+                    }
+                    if (cou != undefined){
+                        var tnt = nTxt[i].value;
+                        if (tnt==""){
+                            tnt = "-";
+                        }
+                        SaveTxt += ic +","+ tnt + " : " + nTcount[i].textContent + "\n";
+                    }else {
+                        ic = -txtAreaCount+i+6;
+                        SaveTxtTop += ic +","+ nTxt[i].value + "\n";
+                    }
+                }
+                var Tcsv = "Title:,"+sFileName+"\n"+
+                "Date:,"+ Hdf + "\n"+
+                ",Top 5:\n"+
+                SaveTxtTop +
+                ",\n"+
+                ",List:\n"+
+                SaveTxt; 
+
+                // console.log(Tencrypted);
+                // Convert the text to BLOB.
+                const textToBLOB = new Blob([Tcsv], { type: 'text/csv;charset=utf-8,' });
+                // const sFileName = 'formData.txt';	   // The file to save the data.
+
+                let newLink = document.createElement("a");
+                newLink.download = sFileName+".csv";
+
+                if (window.webkitURL != null) {
+                    newLink.href = window.webkitURL.createObjectURL(textToBLOB);
+                }
+                else {
+                    newLink.href = window.URL.createObjectURL(textToBLOB);
+                    newLink.style.display = "none";
+                    document.body.appendChild(newLink);
+                }
+
+                newLink.click();
+            }
+        }
+
+        function startImport(){
+            document.getElementById('ipo').click();
+        }
+        function Importte(event) {
+            var selectedFile = event.target.files[0];
+            var reader = new FileReader();
+            var RetTxt, Tdecrypted; 
+            var result = document.getElementById("result");
+
+            reader.onload = function(event) {
+                RetTxt = event.target.result;
+                Tdecrypted = decrypt(RetTxt);
+                loadImport(Tdecrypted);
+            };
+            reader.readAsText(selectedFile);
+        }
+        
+        function loadImport(savedInfo) {
+            try {
+                // Try to parse as Version 3 JSON format first
+                var exportData;
+                try {
+                    exportData = JSON.parse(savedInfo);
+                } catch (jsonError) {
+                    // Fall back to legacy format (version 2 and earlier)
+                    loadImportLegacy(savedInfo);
+                    return;
+                }
+                
+                if (exportData.version !== 3) {
+                    loadImportLegacy(savedInfo);
+                    return;
+                }
+                
+                document.title = HumanDate(exportData.timestamp);
+                
+                // Clear existing tabs (except keep the container structure)
+                const tabsContainer = document.querySelector('.tabs-container');
+                const mainContainer = document.querySelector('.main.container');
+                
+                // Remove all existing tab buttons except add button
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.remove());
+                // Remove all existing tab contents
+                document.querySelectorAll('.tab-content').forEach(content => content.remove());
+                
+                // Reset tab counter
+                tabCounter = 0;
+                
+                // Recreate tabs from import data
+                const addBtn = document.querySelector('.add-tab-btn');
+                
+                exportData.tabs.forEach((tabData, tabIndex) => {
+                    tabCounter++;
+                    const newTabId = 'tab-' + tabCounter;
+                    const isFirst = tabIndex === 0;
+                    
+                    // Create tab button
+                    const newTabBtn = document.createElement('button');
+                    newTabBtn.className = 'tab-btn' + (isFirst ? ' active' : '');
+                    newTabBtn.dataset.tab = newTabId;
+                    newTabBtn.onclick = function() { switchTab(newTabId); };
+                    newTabBtn.ondblclick = function() { renameTab(newTabId); };
+                    newTabBtn.innerHTML = `${tabData.name} <span class="tab-close" onclick="event.stopPropagation(); deleteTab('${newTabId}')">✕</span>`;
+                    tabsContainer.insertBefore(newTabBtn, addBtn);
+                    
+                    // Create tab content
+                    const newTabContent = document.createElement('div');
+                    newTabContent.id = newTabId;
+                    newTabContent.className = 'tab-content' + (isFirst ? ' active' : '');
+                    
+                    // Build items HTML
+                    var itemsHtml = '<div>';
+                    tabData.items.forEach((item, itemIndex) => {
+                        var textContent = cleanTexts(item.text, 'out');
+                        var tagClass = item.tag !== 'none' ? 'tagged-' + item.tag : '';
+                        var tagDropdownClass = 'tag-' + item.tag;
+                        
+                        itemsHtml += "<div class='draggable' draggable='true'>" +
+                            "<div class='itemz " + tagClass + "' id='item" + itemIndex + "'>" +
+                                "<div class='tag-selector'>" +
+                                    "<select class='tag-dropdown " + tagDropdownClass + "' onchange='setTag(this)' title='Color tag'>" +
+                                        "<option value='none'" + (item.tag === 'none' ? ' selected' : '') + ">⚪</option>" +
+                                        "<option value='red'" + (item.tag === 'red' ? ' selected' : '') + ">🔴</option>" +
+                                        "<option value='orange'" + (item.tag === 'orange' ? ' selected' : '') + ">🟠</option>" +
+                                        "<option value='yellow'" + (item.tag === 'yellow' ? ' selected' : '') + ">🟡</option>" +
+                                        "<option value='green'" + (item.tag === 'green' ? ' selected' : '') + ">🟢</option>" +
+                                        "<option value='blue'" + (item.tag === 'blue' ? ' selected' : '') + ">🔵</option>" +
+                                        "<option value='purple'" + (item.tag === 'purple' ? ' selected' : '') + ">🟣</option>" +
+                                    "</select>" +
+                                "</div>" +
+                                "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>" +
+                                "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>" +
+                                "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>" +
+                                "<div style='flex:1; display:flex; flex-direction:column;'>" +
+                                    "<textarea id='inItem" + itemIndex + "' placeholder='Enter your text or link here...' rows='2' maxlength='99990' oninput='updateCharCount(this)'>" + textContent + "</textarea>" +
+                                    "<div class='char-count'><span id='charCount" + itemIndex + "'>" + textContent.length + "</span> / 99990</div>" +
+                                "</div>" +
+                                "<button onclick='removeMe(this.parentNode.id)'>✕</button>" +
+                                "<div id='item" + itemIndex + "count' class='couClass'>" + item.count + "</div>" +
+                            "</div>" +
+                        "</div>";
+                    });
+                    itemsHtml += '</div>';
+                    
+                    newTabContent.innerHTML = itemsHtml;
+                    mainContainer.appendChild(newTabContent);
+                });
+                
+                // Restore Top 5
+                exportData.top5.forEach((topText, i) => {
+                    const topItem = document.querySelector('#iItem' + (i + 1));
+                    if (topItem) {
+                        topItem.value = cleanTexts(topText, 'out');
+                    }
+                });
+                
+                // Set current tab
+                currentTab = 'tab-1';
+                
+                // Initialize buttons for first tab
+                initTabButtons();
+                
+                showToast('📥 Import successful! ' + exportData.tabs.length + ' tab(s) restored.');
+                
+            } catch (e) {
+                alert("Error importing file. The file may be corrupted or in an incorrect format.");
+                console.error("Import error:", e);
+            }
+        }
+        
+        // Legacy import for version 2 and earlier files
+        function loadImportLegacy(savedInfo) {
+            try {
+                var items = savedInfo.split("(~)|(~)");
+                if (items.length < 3) {
+                    throw new Error("Invalid file format");
+                }
+                document.title = HumanDate(items[0]);
+
+                var listAll = items[1].split("(~)"); 
+                var listload = "";
+                for (var i = 0; i < listAll.length - 1; i++) {
+                    var innerTx = listAll[i].split("|~|");
+                    if (innerTx.length < 2) continue;
+                    var textContent = cleanTexts(innerTx[0], 'out');
+                    listload += "<div class='draggable' draggable='true'>" +
+                        "<div class='itemz' id='item" + i + "'>" +
+                            "<div class='tag-selector'>" +
+                                "<select class='tag-dropdown tag-none' onchange='setTag(this)' title='Color tag'>" +
+                                    "<option value='none'>⚪</option>" +
+                                    "<option value='red'>🔴</option>" +
+                                    "<option value='orange'>🟠</option>" +
+                                    "<option value='yellow'>🟡</option>" +
+                                    "<option value='green'>🟢</option>" +
+                                    "<option value='blue'>🔵</option>" +
+                                    "<option value='purple'>🟣</option>" +
+                                "</select>" +
+                            "</div>" +
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>" +
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>" +
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>" +
+                            "<div style='flex:1; display:flex; flex-direction:column;'>" +
+                                "<textarea id='inItem" + i + "' placeholder='Enter your text or link here...' rows='2' maxlength='99990' oninput='updateCharCount(this)'>" + textContent + "</textarea>" +
+                                "<div class='char-count'><span id='charCount" + i + "'>" + textContent.length + "</span> / 99990</div>" +
+                            "</div>" +
+                            "<button onclick='removeMe(this.parentNode.id)'>✕</button>" +
+                            "<div id='item" + i + "count' class='couClass'>" + innerTx[1] + "</div>" +
+                        "</div>" +
+                    "</div>";
+                }
+                
+                const activeTabDiv = document.querySelector(".tab-content.active > div");
+                if (activeTabDiv) {
+                    activeTabDiv.innerHTML = listload;
+                }
+
+                var listTop = items[2].split("(~)");
+                for (var i = 0; i < 5; i++) {
+                    var onA = i + 1;
+                    if (listTop[i]) {
+                        var item = listTop[i].split("|~|");
+                        var lTop = cleanTexts(item[0] || '', 'out');
+                        document.querySelector("#iItem" + onA).value = lTop;
+                    }
+                }
+                
+                initTabButtons();
+                showToast('📥 Legacy import successful!');
+                
+            } catch (e) {
+                alert("Error importing file. The file may be corrupted or in an incorrect format.");
+                console.error("Import error:", e);
+            }
+        }
+
+        function removeMe(nod){
+            const element = document.getElementById(nod);
+            if (element) {
+                // Remove the parent .draggable element
+                const draggable = element.closest('.draggable');
+                if (draggable) {
+                    draggable.remove();
+                } else {
+                    element.remove();
+                }
+            }
+            // Re-index remaining items
+            const draggables = document.querySelectorAll(".main .draggable");
+            draggables.forEach((drag, index) => {
+                const itemz = drag.querySelector('.itemz');
+                const textarea = drag.querySelector('textarea');
+                const counter = drag.querySelector('.couClass');
+                if (itemz) itemz.id = "item" + index;
+                if (textarea) textarea.id = "inItem" + index;
+                if (counter) counter.id = "item" + index + "count";
+            });
+        }
+
+        function itemTemplate (num){
+            if (num==null){num = 0;}
+            return "<div><div class='draggable' draggable='true'>"+
+                        "<div class='itemz' id='item"+num+"'>"+
+                            "<div class='tag-selector'>"+
+                                "<select class='tag-dropdown tag-none' onchange='setTag(this)' title='Color tag'>"+
+                                    "<option value='none'>⚪</option>"+
+                                    "<option value='red'>🔴</option>"+
+                                    "<option value='orange'>🟠</option>"+
+                                    "<option value='yellow'>🟡</option>"+
+                                    "<option value='green'>🟢</option>"+
+                                    "<option value='blue'>🔵</option>"+
+                                    "<option value='purple'>🟣</option>"+
+                                "</select>"+
+                            "</div>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>"+
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
+                            "<div style='flex:1; display:flex; flex-direction:column;'>"+
+                                "<textarea id='inItem"+num+"' placeholder='Enter your text or link here...' rows='2' maxlength='99990' oninput='updateCharCount(this)'></textarea>"+
+                                "<div class='char-count'><span id='charCount"+num+"'>0</span> / 99990</div>"+
+                            "</div>"+
+                            "<button onclick='removeMe(this.parentNode.id)'>✕</button>"+
+                            "<div id='item"+num+"count' class='couClass'>0</div>"+
+                        "</div></div>"+
+                        "</div><div class='mainBot'></div>";
+        }
+        function itemTemplateS (num){
+            if (num==null){num = 0;}
+            return "<div class='draggable' draggable='true'>"+
+                        "<div class='itemz' id='item"+num+"'>"+
+                            "<div class='tag-selector'>"+
+                                "<select class='tag-dropdown tag-none' onchange='setTag(this)' title='Color tag'>"+
+                                    "<option value='none'>⚪</option>"+
+                                    "<option value='red'>🔴</option>"+
+                                    "<option value='orange'>🟠</option>"+
+                                    "<option value='yellow'>🟡</option>"+
+                                    "<option value='green'>🟢</option>"+
+                                    "<option value='blue'>🔵</option>"+
+                                    "<option value='purple'>🟣</option>"+
+                                "</select>"+
+                            "</div>"+
+                            "<input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>"+
+                            "<div class='updowns'><button onclick='MThis(\"top\", this)'><i class=\"arrow up\"></i></button>"+
+                            "<button onclick='MThis(\"bot\", this)'><i class=\"arrow down\"></i></button></div>"+
+                            "<div style='flex:1; display:flex; flex-direction:column;'>"+
+                                "<textarea id='inItem"+num+"' placeholder='Enter your text or link here...' rows='2' maxlength='99990' oninput='updateCharCount(this)'></textarea>"+
+                                "<div class='char-count'><span id='charCount"+num+"'>0</span> / 99990</div>"+
+                            "</div>"+
+                            "<button onclick='removeMe(this.parentNode.id)'>✕</button>"+
+                            "<div id='item"+num+"count' class='couClass'>0</div>"+
+                        "</div>"+
+                    "</div>";
+        }
+
+        // ===== Color Tag Functions =====
+        function setTag(selectElement) {
+            const color = selectElement.value;
+            const itemz = selectElement.closest('.itemz');
+            if (!itemz) return;
+            
+            // Remove all tag classes from itemz and dropdown
+            itemz.classList.remove('tagged-red', 'tagged-orange', 'tagged-yellow', 'tagged-green', 'tagged-blue', 'tagged-purple');
+            selectElement.classList.remove('tag-none', 'tag-red', 'tag-orange', 'tag-yellow', 'tag-green', 'tag-blue', 'tag-purple');
+            
+            // Add new classes
+            selectElement.classList.add('tag-' + color);
+            
+            // Add tag class to item if not "none"
+            if (color !== 'none') {
+                itemz.classList.add('tagged-' + color);
+            }
+        }
+
+        // ===== Character Count =====
+        function updateCharCount(textarea) {
+            const count = textarea.value.length;
+            const countSpan = textarea.parentElement.querySelector('.char-count span');
+            if (countSpan) {
+                countSpan.textContent = count;
+            }
+        }
+
+        function addMore(si){
+            if (si == "'top'") {
+                return "<button onclick=\"appendItem("+si+")\" >➕ Add Item at Top</button>";
+            }
+            return "<button onclick=\"appendItem("+si+")\" >➕ Add New Item</button>";
+        }
+
+        function appendItem(di){
+            const activeTab = document.querySelector('.tab-content.active > div');
+            if (!activeTab) return;
+            
+            if (di=="bot"){
+                var izemCount = activeTab.querySelectorAll(".itemz").length;
+                var io = 0;
+                const draggables = activeTab.querySelectorAll(".draggable");
+                draggables.forEach((drag, index) => {
+                    const itemz = drag.querySelector('.itemz');
+                    const textarea = drag.querySelector('textarea');
+                    const counter = drag.querySelector('.couClass');
+                    if (itemz) itemz.id = "item" + index;
+                    if (textarea) textarea.id = "inItem" + index;
+                    if (counter) counter.id = "item" + index + "count";
+                });
+                
+                // Find the mainBot or last draggable
+                const mainBot = activeTab.querySelector('.mainBot');
+                if (mainBot) {
+                    mainBot.insertAdjacentHTML('beforebegin', itemTemplateS(izemCount));
+                } else {
+                    activeTab.insertAdjacentHTML('beforeend', itemTemplateS(izemCount));
+                }
+                const lastTextarea = activeTab.querySelector("div.draggable:last-of-type div.itemz textarea");
+                if (lastTextarea) lastTextarea.focus();
+            }
+            if (di=="top"){
+                var izemCount = activeTab.querySelectorAll(".itemz").length;
+                
+                // Find first draggable
+                const firstDraggable = activeTab.querySelector('.draggable');
+                if (firstDraggable) {
+                    firstDraggable.insertAdjacentHTML('beforebegin', itemTemplateS(izemCount));
+                } else {
+                    activeTab.insertAdjacentHTML('afterbegin', itemTemplateS(izemCount));
+                }
+                
+                // Re-index all items
+                const draggables = activeTab.querySelectorAll(".draggable");
+                draggables.forEach((drag, index) => {
+                    const itemz = drag.querySelector('.itemz');
+                    const textarea = drag.querySelector('textarea');
+                    const counter = drag.querySelector('.couClass');
+                    if (itemz) itemz.id = "item" + index;
+                    if (textarea) textarea.id = "inItem" + index;
+                    if (counter) counter.id = "item" + index + "count";
+                });
+                
+                const firstTextarea = activeTab.querySelector("div.draggable:first-of-type div.itemz textarea");
+                if (firstTextarea) firstTextarea.focus();
+            }
+        }
+
+        var load = 0;
+
+        function MThis(way, me){
+            const draggable = me.closest(".draggable");
+            if (!draggable) return;
+            
+            if (way == "top"){
+                const prev = draggable.previousElementSibling;
+                if (prev && prev.classList.contains('draggable')) {
+                    draggable.parentNode.insertBefore(draggable, prev);
+                }
+            }
+            if (way == "bot"){
+                const next = draggable.nextElementSibling;
+                if (next && next.classList.contains('draggable')) {
+                    draggable.parentNode.insertBefore(next, draggable);
+                }
+            }
+            reindexItems();
+        }
+
+        // ===== Drag & Drop Reorder =====
+        function initDragAndDrop() {
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.classList.contains('draggable')) {
+                    e.target.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', ''); // Required for Firefox
+                }
+            });
+
+            document.addEventListener('dragend', function(e) {
+                if (e.target.classList.contains('draggable')) {
+                    e.target.classList.remove('dragging');
+                    document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                    reindexItems();
+                }
+            });
+
+            document.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                const draggable = document.querySelector('.dragging');
+                if (!draggable) return;
+
+                const container = e.target.closest('.tab-content.active > div');
+                if (!container) return;
+
+                const afterElement = getDragAfterElement(container, e.clientY);
+                
+                // Remove all drag-over classes
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                
+                if (afterElement) {
+                    afterElement.classList.add('drag-over');
+                    container.insertBefore(draggable, afterElement);
+                } else {
+                    // Find the mainBot or append to end
+                    const mainBot = container.querySelector('.mainBot');
+                    if (mainBot) {
+                        container.insertBefore(draggable, mainBot);
+                    } else {
+                        container.appendChild(draggable);
+                    }
+                }
+            });
+
+            document.addEventListener('drop', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                reindexItems();
+            });
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.draggable:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function reindexItems() {
+            const activeTab = document.querySelector('.tab-content.active > div');
+            if (!activeTab) return;
+            
+            const draggables = activeTab.querySelectorAll('.draggable');
+            draggables.forEach((drag, index) => {
+                const itemz = drag.querySelector('.itemz');
+                const textarea = drag.querySelector('textarea');
+                const counter = drag.querySelector('.couClass');
+                const charCount = drag.querySelector('.char-count span');
+                if (itemz) itemz.id = "item" + index;
+                if (textarea) textarea.id = "inItem" + index;
+                if (counter) counter.id = "item" + index + "count";
+                if (charCount) charCount.id = "charCount" + index;
+            });
+        }
+
+        function CopyCounter(mine) {
+            var oldCount = document.querySelector("#"+mine+"count");
+            if (!oldCount) return;
+            oldCount = parseInt(oldCount.textContent) || 0;
+            var noe = document.querySelector("#"+mine+"count");
+            noe.textContent = oldCount+1;
+            UpdateTopFive();
+        }
+        
+        function UpdateTopFive(){
+            var five = [];
+            const activeTab = document.querySelector('.tab-content.active');
+            if (!activeTab) return;
+            
+            const counters = activeTab.querySelectorAll(".couClass");
+            counters.forEach((counter, index) => {
+                const nu = parseInt(counter.textContent) || 0;
+                five.push({
+                    count: nu,
+                    index: index
+                });
+            });
+            
+            five.sort((a, b) => b.count - a.count);
+            
+            for (var a = 0; a < 5; a++) {
+                var onA = a + 1;
+                try {
+                    if (five[a] && five[a].count > 0) {
+                        const textarea = activeTab.querySelector("#inItem" + five[a].index);
+                        if (textarea && textarea.value) {
+                            document.querySelector("#iItem" + onA).value = textarea.value;
+                        } else {
+                            document.querySelector("#iItem" + onA).value = "";
+                        }
+                    } else {
+                        document.querySelector("#iItem" + onA).value = "";
+                    }
+                } catch(e) {
+                    console.log("UpdateTopFive error:", e);
+                }
+            }
+        }
+
+        // Without jQuery
+        // Define a convenience method and use it
+        var ready = (callback) => {
+        if (document.readyState != "loading") callback();
+        else document.addEventListener("DOMContentLoaded", callback);
+        }
+
+        ready(() => { 
+        /* Do things after DOM has fully loaded */
+        if (load == 0){
+            // Initialize theme
+            initTheme();
+            
+            // Initialize drag and drop
+            initDragAndDrop();
+            
+            // Initialize first tab with add buttons
+            const activeTabContent = document.querySelector('.tab-content.active');
+            if (activeTabContent) {
+                activeTabContent.insertAdjacentHTML('afterbegin', addMore("'top'"));
+                const innerDiv = activeTabContent.querySelector('div');
+                if (innerDiv && !innerDiv.querySelector('.mainBot')) {
+                    innerDiv.insertAdjacentHTML('beforeend', "<div class='mainBot'></div>");
+                    const mainBot = innerDiv.querySelector('.mainBot');
+                    if (mainBot) {
+                        mainBot.insertAdjacentHTML('beforeend', addMore("'bot'"));
+                    }
+                }
+            }
+            
+            load = 1; // Prevent re-initialization
+        }
+        });
+
+        // ===== Theme Management =====
+        function initTheme() {
+            const savedTheme = localStorage.getItem('linkListTheme') || 'fintech';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            const themeSelect = document.getElementById('themeSelect');
+            if (themeSelect) {
+                themeSelect.value = savedTheme;
+            }
+        }
+
+        function changeTheme(themeName) {
+            document.documentElement.setAttribute('data-theme', themeName);
+            localStorage.setItem('linkListTheme', themeName);
+        }
+
+        // ===== Tab Management =====
+        var tabCounter = 1;
+        var currentTab = 'tab-1';
+
+        function switchTab(tabId) {
+            // Save current tab's data before switching
+            saveTabData(currentTab);
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) {
+                tabContent.classList.add('active');
+            }
+            
+            // Activate the tab button
+            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (tabBtn) {
+                tabBtn.classList.add('active');
+            }
+            
+            currentTab = tabId;
+            
+            // Re-add buttons if needed
+            const activeContent = document.querySelector('.tab-content.active > div');
+            if (activeContent && !activeContent.querySelector('.mainBot')) {
+                initTabButtons();
+            }
+        }
+
+        function addNewTab() {
+            tabCounter++;
+            const newTabId = 'tab-' + tabCounter;
+            const tabName = prompt("Enter a name for the new tab:", "List " + tabCounter);
+            
+            if (tabName === null) {
+                tabCounter--;
+                return;
+            }
+            
+            // Create new tab button
+            const tabsContainer = document.querySelector('.tabs-container');
+            const addBtn = document.querySelector('.add-tab-btn');
+            
+            const newTabBtn = document.createElement('button');
+            newTabBtn.className = 'tab-btn';
+            newTabBtn.dataset.tab = newTabId;
+            newTabBtn.onclick = function() { switchTab(newTabId); };
+            newTabBtn.ondblclick = function() { renameTab(newTabId); };
+            newTabBtn.innerHTML = `📋 ${tabName || 'List ' + tabCounter} <span class="tab-close" onclick="event.stopPropagation(); deleteTab('${newTabId}')">✕</span>`;
+            
+            tabsContainer.insertBefore(newTabBtn, addBtn);
+            
+            // Create new tab content - insert after the last tab-content, not at the end of container
+            const lastTabContent = document.querySelector('.main.container > .tab-content:last-of-type');
+            const newTabContent = document.createElement('div');
+            newTabContent.id = newTabId;
+            newTabContent.className = 'tab-content';
+            newTabContent.innerHTML = `
+                <div>
+                    <div class='draggable' draggable='true'>
+                        <div class='itemz' id='item0'>
+                            <div class='tag-selector'>
+                                <select class='tag-dropdown tag-none' onchange='setTag(this)' title='Color tag'>
+                                    <option value='none'>⚪</option>
+                                    <option value='red'>🔴</option>
+                                    <option value='orange'>🟠</option>
+                                    <option value='yellow'>🟡</option>
+                                    <option value='green'>🟢</option>
+                                    <option value='blue'>🔵</option>
+                                    <option value='purple'>🟣</option>
+                                </select>
+                            </div>
+                            <input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>
+                            <div class='updowns'>
+                                <button onclick='MThis("top", this)'><i class="arrow up"></i></button>
+                                <button onclick='MThis("bot", this)'><i class="arrow down"></i></button>
+                            </div>
+                            <div style='flex:1; display:flex; flex-direction:column;'>
+                                <textarea id='inItem0' placeholder="Enter your text or link here..." oninput='updateCharCount(this)'></textarea>
+                                <div class='char-count'><span id='charCount0'>0</span> / 99990</div>
+                            </div>
+                            <button onclick='removeMe(this.parentNode.id)'>✕</button>
+                            <div id='item0count' class='couClass'>0</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            if (lastTabContent) {
+                lastTabContent.insertAdjacentElement('afterend', newTabContent);
+            } else {
+                document.querySelector('.main.container').appendChild(newTabContent);
+            }
+            
+            // Switch to the new tab
+            switchTab(newTabId);
+            initTabButtons();
+        }
+
+        function deleteTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            
+            // Don't delete if it's the only tab
+            if (tabs.length <= 1) {
+                alert("You can't delete the last tab!");
+                return;
+            }
+            
+            if (!confirm("Delete this tab and all its items?")) {
+                return;
+            }
+            
+            // Remove tab button
+            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (tabBtn) {
+                tabBtn.remove();
+            }
+            
+            // Remove tab content
+            const tabContent = document.getElementById(tabId);
+            if (tabContent) {
+                tabContent.remove();
+            }
+            
+            // If deleting the current tab, switch to first available tab
+            if (currentTab === tabId) {
+                const firstTab = document.querySelector('.tab-btn');
+                if (firstTab) {
+                    switchTab(firstTab.dataset.tab);
+                }
+            }
+        }
+
+        function renameTab(tabId) {
+            const tabBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+            if (!tabBtn) return;
+            
+            const currentName = tabBtn.textContent.replace('✕', '').trim().replace('📋 ', '');
+            const newName = prompt("Enter new name for this tab:", currentName);
+            
+            if (newName && newName.trim()) {
+                tabBtn.innerHTML = `📋 ${newName.trim()} <span class="tab-close" onclick="event.stopPropagation(); deleteTab('${tabId}')">✕</span>`;
+            }
+        }
+
+        function saveTabData(tabId) {
+            // This function can be extended to save tab data to localStorage
+            // For now, data persists in the DOM
+        }
+
+        function initTabButtons() {
+            const activeContent = document.querySelector('.tab-content.active > div');
+            if (!activeContent) return;
+            
+            // Check if buttons already exist
+            if (!document.querySelector('.tab-content.active > button')) {
+                const tabContent = document.querySelector('.tab-content.active');
+                tabContent.insertAdjacentHTML('afterbegin', addMore("'top'"));
+            }
+            if (!activeContent.querySelector('.mainBot')) {
+                activeContent.insertAdjacentHTML('beforeend', "<div class='mainBot'></div>");
+                const mainBot = activeContent.querySelector('.mainBot');
+                if (mainBot) {
+                    mainBot.insertAdjacentHTML('beforeend', addMore("'bot'"));
+                }
+            }
+        }
+        
+    </script>
+</head>
+<body>
+    <div class="content">
+        <!-- Header Section -->
+        <div class="top">
+            <!-- Theme Selector -->
+            <div class="theme-selector">
+                <label for="themeSelect">🎨</label>
+                <select id="themeSelect" onchange="changeTheme(this.value)">
+                    <option value="fintech">Fintech Trust</option>
+                    <option value="productivity">Productivity Dark</option>
+                    <option value="human">Human Connection</option>
+                    <option value="biophilic">Biophilic Calm</option>
+                    <option value="avantgarde">Digital Avant-Garde</option>
+                </select>
+            </div>
+            <a href="javascript:window.location.href=window.location.href">✨ New List</a>
+            <span class="version-badge">Version 3.0</span>
+            <a onclick="this.href='data:text/html;charset=UTF-8,'+encodeURIComponent(document.documentElement.outerHTML)" href="#" download="LinkList.html">💾 Download App</a>
+        </div>
+
+        <!-- Main List Container -->
+        <div class="main container">
+            <!-- Tabs Navigation -->
+            <div class="tabs-container">
+                <button class="tab-btn active" data-tab="tab-1" onclick="switchTab('tab-1')" ondblclick="renameTab('tab-1')">
+                    📋 List 1
+                    <span class="tab-close" onclick="event.stopPropagation(); deleteTab('tab-1')">✕</span>
+                </button>
+                <button class="add-tab-btn" onclick="addNewTab()">➕ New Tab</button>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-1" class="tab-content active">
+                <div>
+                    <div class='draggable' draggable='true'>
+                        <div class='itemz' id='item0'>
+                            <div class='tag-selector'>
+                                <select class='tag-dropdown tag-none' onchange='setTag(this)' title='Color tag'>
+                                    <option value='none'>⚪</option>
+                                    <option value='red'>🔴</option>
+                                    <option value='orange'>🟠</option>
+                                    <option value='yellow'>🟡</option>
+                                    <option value='green'>🟢</option>
+                                    <option value='blue'>🔵</option>
+                                    <option value='purple'>🟣</option>
+                                </select>
+                            </div>
+                            <input onclick='txtCopy(this.nextElementSibling.nextElementSibling.id,this.parentNode.id)' type='button' value='📋 Copy'/>
+                            <div class='updowns'>
+                                <button onclick='MThis("top", this)'><i class="arrow up"></i></button>
+                                <button onclick='MThis("bot", this)'><i class="arrow down"></i></button>
+                            </div>
+                            <div style='flex:1; display:flex; flex-direction:column;'>
+                                <textarea id='inItem0' placeholder="Enter your text or link here..." oninput='updateCharCount(this)'></textarea>
+                                <div class='char-count'><span id='charCount0'>0</span> / 99990</div>
+                            </div>
+                            <button onclick='removeMe(this.parentNode.id)'>✕</button>
+                            <div id='item0count' class='couClass'>0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top 5 Sidebar -->
+        <div class="main2">
+            <h2>🏆 Top 5</h2>
+
+            <div class='itemME' id='itemME' draggable='false'>
+                <textarea id='iItem1' maxlength='99990' placeholder='#1 Most copied...'></textarea>
+                <input onclick='txtCopy(q$("#iItem1").id,"a")' type='button' value='📋 Copy'/> 
+                
+                <textarea id='iItem2' maxlength='99990' placeholder='#2 Most copied...'></textarea>
+                <input onclick='txtCopy(q$("#iItem2").id,"a")' type='button' value='📋 Copy'/> 
+                
+                <textarea id='iItem3' maxlength='99990' placeholder='#3 Most copied...'></textarea>
+                <input onclick='txtCopy(q$("#iItem3").id,"a")' type='button' value='📋 Copy'/> 
+                
+                <textarea id='iItem4' maxlength='99990' placeholder='#4 Most copied...'></textarea>
+                <input onclick='txtCopy(q$("#iItem4").id,"a")' type='button' value='📋 Copy'/> 
+                
+                <textarea id='iItem5' maxlength='99990' placeholder='#5 Most copied...'></textarea>
+                <input onclick='txtCopy(q$("#iItem5").id,"a")' type='button' value='📋 Copy'/> 
+
+                <div>
+                    <button onclick="showExport()">📤 Export</button>
+                    <input id='ipo' style="display: none;" type="file" value="Import" onchange="Importte(event)">
+                    <button onclick="startImport()">📥 Import</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="bottom">
+            <p>Created with 💚 by <strong>Aquil Roberts</strong></p>
+            <p style="margin-top: 8px; color: var(--color-gray-600); font-size: 0.9rem;">
+                💡 Tips: Double-click tabs to rename • Drag items to reorder • Click color dots to tag
+            </p>
+        </div>
+
+        <!-- Export Modal Dialog -->
+        <div id="xportDiag">
+            <div>
+                <button onclick="hideExport()">✕</button>
+                <h1>📤 Export Options</h1>
+                <button onclick="hideExport();Exportte()">🔐 Encrypted</button>
+                <button onclick="hideExport();Exportth()">📝 Simple Text</button>
+                <button onclick="hideExport();Exporttx()">📊 Excel (.csv)</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showExport(){
+            document.getElementById("xportDiag").style.display = "flex";
+        }
+        function hideExport(){
+            document.getElementById("xportDiag").style.display = "none";
+        }
+        
+        // ===== PWA Install Prompt =====
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install button after a short delay
+            setTimeout(() => {
+                if (deferredPrompt) {
+                    showInstallPrompt();
+                }
+            }, 3000);
+        });
+        
+        function showInstallPrompt() {
+            const installBanner = document.createElement('div');
+            installBanner.id = 'installBanner';
+            installBanner.innerHTML = `
+                <div style="position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); 
+                            background: linear-gradient(135deg, var(--color-primary), var(--color-accent)); 
+                            color: white; padding: 16px 24px; border-radius: 12px; 
+                            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 3000;
+                            display: flex; align-items: center; gap: 16px; max-width: 90%;">
+                    <span style="font-size: 2rem;">📲</span>
+                    <div style="flex: 1;">
+                        <strong>Install LinkList</strong><br>
+                        <small>Add to your home screen for quick access!</small>
+                    </div>
+                    <button onclick="installPWA()" style="background: white; color: var(--color-primary); 
+                            border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Install
+                    </button>
+                    <button onclick="dismissInstall()" style="background: transparent; color: white; 
+                            border: 1px solid white; padding: 8px 12px; border-radius: 8px; cursor: pointer;">
+                        ✕
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(installBanner);
+        }
+        
+        function installPWA() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        showToast('🎉 LinkList installed successfully!');
+                    }
+                    deferredPrompt = null;
+                    dismissInstall();
+                });
+            }
+        }
+        
+        function dismissInstall() {
+            const banner = document.getElementById('installBanner');
+            if (banner) banner.remove();
+        }
+        
+        // Register service worker for offline capability (if served from a web server)
+        if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+            window.addEventListener('load', () => {
+                // Create inline service worker
+                const swCode = `
+                    const CACHE_NAME = 'linklist-v1';
+                    self.addEventListener('fetch', (event) => {
+                        event.respondWith(
+                            caches.match(event.request).then((response) => {
+                                return response || fetch(event.request);
+                            })
+                        );
+                    });
+                `;
+                const blob = new Blob([swCode], { type: 'application/javascript' });
+                const swUrl = URL.createObjectURL(blob);
+                navigator.serviceWorker.register(swUrl).catch(() => {});
+            });
+        }
+    </script>
+</body>
+</html>
