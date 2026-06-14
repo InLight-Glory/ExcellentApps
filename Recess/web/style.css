@@ -113,6 +113,18 @@ body.tiktok-mode .site-header, body.tiktok-mode .layout, body.tiktok-mode .site-
 .swipe-container{width:100%;max-width:720px;height:70vh;background:rgba(255,255,255,0.03);border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .swipe-item{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px}
 .swipe-item img,.swipe-item video{max-width:100%;max-height:100%;border-radius:10px}
+.swipe-item iframe{width:100%;height:100%;border:0}
+
+/* Swipe media wrapper + gesture overlay (captures touch/pointer above iframes) */
+.swipe-media-wrap{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.swipe-media-wrap img,.swipe-media-wrap video,.swipe-media-wrap iframe{width:100%;height:100%;object-fit:cover}
+.swipe-gesture-overlay{position:absolute;inset:0;z-index:2;background:transparent;display:flex;align-items:flex-end;justify-content:flex-end;padding:12px}
+.swipe-overlay-btn{background:rgba(255,255,255,0.12);color:white;border:1px solid rgba(255,255,255,0.18);border-radius:999px;padding:8px 12px;cursor:pointer}
+.swipe-overlay-btn:hover{background:rgba(255,255,255,0.20)}
+
+/* Hidden preloads (keep network warm without affecting layout) */
+.swipe-preloads{position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden}
+.swipe-preload-item{width:1px;height:1px;overflow:hidden}
 .swipe-pagination{margin-top:10px}
 .swipe-view .btn{background:rgba(255,255,255,0.06);color:white;border:1px solid rgba(255,255,255,0.08)}
 
@@ -127,6 +139,14 @@ body.tiktok-mode .site-header, body.tiktok-mode .layout, body.tiktok-mode .site-
 .swipe-nav-btn:hover{background:rgba(255,255,255,0.22)}
 .swipe-nav-prev{top:12px}
 .swipe-nav-next{bottom:12px}
+
+/* Swipe history panel */
+.swipe-history{position:fixed;top:72px;right:18px;z-index:10150;width:min(420px,92vw);max-height:60vh;overflow:auto;background:rgba(2,6,23,0.78);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:12px;backdrop-filter:blur(12px)}
+.swipe-history-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.swipe-history-title{color:white;font-weight:600}
+.swipe-history-list{display:flex;flex-direction:column;gap:8px}
+.swipe-history-item{width:100%;text-align:left;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:white;cursor:pointer}
+.swipe-history-item:hover{background:rgba(255,255,255,0.12)}
 
 @media (max-width:900px){
   .layout{grid-template-columns:1fr}

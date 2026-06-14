@@ -1,4 +1,6 @@
-const fetch = require('node-fetch');
+const fetch = globalThis.fetch
+  ? globalThis.fetch.bind(globalThis)
+  : (...args) => import('node-fetch').then(m => m.default(...args));
 
 const API = 'http://localhost:3000/api';
 const PARENT_EMAIL = 'parent@local';

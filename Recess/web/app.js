@@ -287,7 +287,7 @@ function renderPost(p) {
   // media (support YouTube embeds, hosted video, or image)
   const isYouTube = (url) => {
     if (!url) return false;
-    return /(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(url);
+    return /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(url);
   };
   const toYouTubeEmbed = (url) => {
     try {
@@ -295,10 +295,13 @@ function renderPost(p) {
       let id = null;
       if (u.hostname.includes('youtu.be')) {
         id = u.pathname.slice(1);
+      } else if (u.hostname.includes('youtube.com') && u.pathname.startsWith('/shorts/')) {
+        id = u.pathname.split('/shorts/')[1];
       } else if (u.hostname.includes('youtube.com')) {
         id = u.searchParams.get('v');
       }
       if (!id) return null;
+      id = id.split(/[?&/]/)[0];
       return `https://www.youtube.com/embed/${id}`;
     } catch (e) {
       return null;
@@ -395,10 +398,11 @@ if (uploadForm) {
       const v = e.target.value.trim();
       if (!v) return;
       // YouTube embed
-      if (/(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(v)) {
+      if (/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(v)) {
         try {
           const url = new URL(v);
-          const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v');
+          let id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : (url.pathname.startsWith('/shorts/') ? url.pathname.split('/shorts/')[1] : url.searchParams.get('v'));
+          if (id) id = id.split(/[?&/]/)[0];
           if (id && uploadPreview) uploadPreview.innerHTML = `<iframe width="100%" height="180" src="https://www.youtube.com/embed/${id}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
         } catch (e) { }
       } else if (v.match(/\.(jpg|jpeg|png|gif)$/i)) {
@@ -422,9 +426,9 @@ async function loadPending() {
   posts.forEach(p => {
     const el = document.createElement('div'); el.className = 'post';
     el.innerHTML = `<h3>${p.title || 'Untitled'}</h3>`;
-    if (p.mediaUrl && /(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(p.mediaUrl)) {
+    if (p.mediaUrl && /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(p.mediaUrl)) {
       // embed
-      const embed = (function (u) { try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
+      const embed = (function (u) { try { const url = new URL(u); let id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : (url.pathname.startsWith('/shorts/') ? url.pathname.split('/shorts/')[1] : url.searchParams.get('v')); if (id) id = id.split(/[?&/]/)[0]; return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
       if (embed) el.innerHTML += `<iframe width="100%" height="220" src="${embed}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     } else if (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) el.innerHTML += `<video controls src="${p.mediaUrl}"></video>`;
     else if (p.mediaUrl) el.innerHTML += `<img src="${p.mediaUrl}"/>`;
@@ -464,8 +468,8 @@ async function loadParentPending() {
   posts.forEach(p => {
     const el = document.createElement('div'); el.className = 'post';
     el.innerHTML = `<h3>${p.title || 'Untitled'}</h3>`;
-    if (p.mediaUrl && /(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(p.mediaUrl)) {
-      const embed = (function (u) { try { const url = new URL(u); const id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : url.searchParams.get('v'); return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
+    if (p.mediaUrl && /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(p.mediaUrl)) {
+      const embed = (function (u) { try { const url = new URL(u); let id = url.hostname.includes('youtu.be') ? url.pathname.slice(1) : (url.pathname.startsWith('/shorts/') ? url.pathname.split('/shorts/')[1] : url.searchParams.get('v')); if (id) id = id.split(/[?&/]/)[0]; return id ? `https://www.youtube.com/embed/${id}` : null; } catch (e) { return null; } })(p.mediaUrl);
       if (embed) el.innerHTML += `<iframe width="100%" height="220" src="${embed}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
     } else if (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i)) el.innerHTML += `<video controls src="${p.mediaUrl}"></video>`;
     else if (p.mediaUrl) el.innerHTML += `<img src="${p.mediaUrl}"/>`;
@@ -538,6 +542,18 @@ let swipeFeedLimit = 4;
 let swipePosts = [];
 let swipeIndex = 0;
 let swipeHandlersAttached = false;
+let swipeHasMore = false;
+const SWIPE_PRELOAD_AHEAD = 4;
+let swipePreloadsEl = null;
+let swipePreloadMap = new Map();
+
+const SWIPE_HISTORY_KEY = 'recess_swipe_history_v1';
+const SWIPE_HISTORY_MAX = 80;
+let swipeHistory = [];
+let swipeHistoryBtn = null;
+let swipeHistoryPanel = null;
+let swipeHistoryList = null;
+let swipeHistoryClearBtn = null;
 
 // Quick demo sign-in handlers (landing page buttons)
 const quickKid5 = qs('#quickKid5');
@@ -580,10 +596,247 @@ async function fetchFeedPage(page = 1) {
   } catch (e) { return { posts: [], hasMore: false }; }
 }
 
+function ensureSwipePreloadsEl() {
+  if (swipePreloadsEl) return swipePreloadsEl;
+  swipePreloadsEl = document.createElement('div');
+  swipePreloadsEl.id = 'swipePreloads';
+  swipePreloadsEl.className = 'swipe-preloads';
+  // keep inside swipeView so it only exists in swipe mode
+  try { swipeView.appendChild(swipePreloadsEl); } catch (e) { }
+  return swipePreloadsEl;
+}
+
+function loadSwipeHistory() {
+  try {
+    const raw = localStorage.getItem(SWIPE_HISTORY_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveSwipeHistory() {
+  try {
+    localStorage.setItem(SWIPE_HISTORY_KEY, JSON.stringify(swipeHistory.slice(-SWIPE_HISTORY_MAX)));
+  } catch (e) { }
+}
+
+function recordSwipeHistory(post) {
+  if (!post) return;
+  const id = post.id;
+  if (typeof id === 'undefined' || id === null) return;
+
+  const viewedAt = Date.now();
+  // remove existing entry to avoid duplicates, then push to end
+  swipeHistory = swipeHistory.filter(h => h && h.id !== id);
+  swipeHistory.push({
+    id,
+    title: post.title || '',
+    category: post.category || '',
+    mediaUrl: post.mediaUrl || '',
+    mediaType: post.mediaType || '',
+    createdAt: post.createdAt || null,
+    viewedAt
+  });
+  if (swipeHistory.length > SWIPE_HISTORY_MAX) swipeHistory = swipeHistory.slice(-SWIPE_HISTORY_MAX);
+  saveSwipeHistory();
+}
+
+function ensureSwipeHistoryUI() {
+  if (swipeHistoryBtn && swipeHistoryPanel && swipeHistoryList) return;
+  const top = qs('.swipe-top', swipeView);
+  if (!top) return;
+
+  // Load history once per session
+  if (!swipeHistory || !swipeHistory.length) swipeHistory = loadSwipeHistory();
+
+  swipeHistoryBtn = document.createElement('button');
+  swipeHistoryBtn.type = 'button';
+  swipeHistoryBtn.className = 'btn';
+  swipeHistoryBtn.id = 'swipeHistoryBtn';
+  swipeHistoryBtn.textContent = 'History';
+
+  swipeHistoryPanel = document.createElement('div');
+  swipeHistoryPanel.id = 'swipeHistoryPanel';
+  swipeHistoryPanel.className = 'swipe-history hidden';
+
+  swipeHistoryPanel.innerHTML = `
+    <div class="swipe-history-header">
+      <div class="swipe-history-title">History</div>
+      <button type="button" class="btn" id="swipeHistoryClear">Clear</button>
+    </div>
+    <div class="swipe-history-list" id="swipeHistoryList"></div>
+  `;
+  swipeView.appendChild(swipeHistoryPanel);
+
+  swipeHistoryList = qs('#swipeHistoryList', swipeHistoryPanel);
+  swipeHistoryClearBtn = qs('#swipeHistoryClear', swipeHistoryPanel);
+
+  swipeHistoryBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    swipeHistoryPanel.classList.toggle('hidden');
+    renderSwipeHistoryPanel();
+  });
+
+  if (swipeHistoryClearBtn) swipeHistoryClearBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    swipeHistory = [];
+    saveSwipeHistory();
+    renderSwipeHistoryPanel();
+  });
+
+  // close panel when clicking outside
+  swipeView.addEventListener('click', (e) => {
+    if (!swipeHistoryPanel || swipeHistoryPanel.classList.contains('hidden')) return;
+    const t = e.target;
+    if (t === swipeHistoryBtn) return;
+    if (swipeHistoryPanel.contains(t)) return;
+    swipeHistoryPanel.classList.add('hidden');
+  });
+
+  // insert button in top bar (near Close)
+  top.insertBefore(swipeHistoryBtn, top.firstChild.nextSibling);
+}
+
+function renderSwipeHistoryPanel() {
+  if (!swipeHistoryList) return;
+  swipeHistoryList.innerHTML = '';
+  const items = (swipeHistory || []).slice().reverse();
+  if (!items.length) {
+    swipeHistoryList.innerHTML = '<div class="muted small">No history yet</div>';
+    return;
+  }
+  items.forEach(h => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'swipe-history-item';
+    const title = (h.title || 'Untitled').trim();
+    const cat = (h.category || '').trim();
+    btn.textContent = cat ? `${title} • ${cat}` : title;
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // If not present in currently loaded feed list, append it so we can render it.
+      let idx = swipePosts.findIndex(p => p && p.id === h.id);
+      if (idx < 0) {
+        swipePosts.push({
+          id: h.id,
+          title: h.title,
+          category: h.category,
+          mediaUrl: h.mediaUrl,
+          mediaType: h.mediaType,
+          createdAt: h.createdAt
+        });
+        idx = swipePosts.length - 1;
+      }
+      swipeIndex = idx;
+      swipeHistoryPanel.classList.add('hidden');
+      // Try to ensure buffer ahead from this point
+      await ensureBufferAhead();
+      renderSwipeItem(swipeIndex);
+    });
+    swipeHistoryList.appendChild(btn);
+  });
+}
+
+async function ensureBufferAhead() {
+  // Keep at least SWIPE_PRELOAD_AHEAD items ahead of current index when possible.
+  // Fetches in pages of swipeFeedLimit.
+  while (swipeHasMore && (swipePosts.length - (swipeIndex + 1)) < SWIPE_PRELOAD_AHEAD) {
+    swipeFeedPage++;
+    const data = await fetchFeedPage(swipeFeedPage);
+    const nextPosts = (data && data.posts) ? data.posts : [];
+    swipeHasMore = !!(data && data.hasMore);
+    if (!nextPosts.length) break;
+    swipePosts = swipePosts.concat(nextPosts);
+  }
+}
+
+function buildYouTubeEmbedUrl(url, { autoplay }) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    let id = null;
+    if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
+    else if (u.hostname.includes('youtube.com') && u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
+    else if (u.hostname.includes('youtube.com')) id = u.searchParams.get('v');
+    if (!id) return null;
+    id = id.split(/[?&/]/)[0];
+    const ap = autoplay ? 1 : 0;
+    return `https://www.youtube.com/embed/${id}?autoplay=${ap}&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1`;
+  } catch (e) {
+    return null;
+  }
+}
+
+function createPreloadElementForPost(p) {
+  const holder = document.createElement('div');
+  holder.className = 'swipe-preload-item';
+  holder.dataset.postId = String(p.id);
+
+  const isYouTube = (u) => /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(u || '');
+  if (p.mediaType === 'video' || (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i))) {
+    const v = document.createElement('video');
+    v.src = p.mediaUrl;
+    v.muted = true;
+    v.preload = 'auto';
+    holder.appendChild(v);
+  } else if (p.mediaUrl && isYouTube(p.mediaUrl)) {
+    const src = buildYouTubeEmbedUrl(p.mediaUrl, { autoplay: false });
+    if (src) {
+      const iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.setAttribute('loading', 'eager');
+      iframe.setAttribute('frameborder', '0');
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
+      holder.appendChild(iframe);
+    }
+  } else if (p.mediaUrl) {
+    const img = new Image();
+    img.src = p.thumbnail || p.mediaUrl;
+    holder.appendChild(img);
+  }
+  return holder;
+}
+
+function updatePrewarmAhead() {
+  const box = ensureSwipePreloadsEl();
+  if (!box) return;
+
+  const desired = new Set();
+  const start = swipeIndex + 1;
+  const end = Math.min(swipePosts.length, start + SWIPE_PRELOAD_AHEAD);
+  for (let i = start; i < end; i++) {
+    const p = swipePosts[i];
+    if (!p || typeof p.id === 'undefined' || p.id === null) continue;
+    desired.add(p.id);
+    if (!swipePreloadMap.has(p.id)) {
+      const el = createPreloadElementForPost(p);
+      swipePreloadMap.set(p.id, el);
+      box.appendChild(el);
+    }
+  }
+
+  // Remove anything no longer in the sliding window.
+  for (const [postId, el] of swipePreloadMap.entries()) {
+    if (!desired.has(postId)) {
+      try { el.remove(); } catch (e) { }
+      swipePreloadMap.delete(postId);
+    }
+  }
+}
+
 async function enterSwipeMode() {
-  swipeFeedPage = 1; swipePosts = []; swipeIndex = 0;
+  swipeFeedPage = 1; swipePosts = []; swipeIndex = 0; swipeHasMore = false;
   const data = await fetchFeedPage(swipeFeedPage);
-  swipePosts = data.posts || [];
+  swipePosts = (data && data.posts) ? data.posts : [];
+  swipeHasMore = !!(data && data.hasMore);
+  // prefetch more so we have enough items to preload ahead
+  await ensureBufferAhead();
   swipeView.classList.remove('hidden'); swipeView.setAttribute('aria-hidden', 'false');
   // enable TikTok-like layout (dark, left nav, narrow center column)
   try { document.body.classList.add('tiktok-mode'); const ln = qs('#leftNav'); if (ln) { ln.classList.remove('hidden'); ln.setAttribute('aria-hidden', 'false'); } } catch (e) { }
@@ -593,6 +846,8 @@ async function enterSwipeMode() {
   updateSwipePagination();
   window.addEventListener('keydown', swipeKeyHandler);
   initSwipeTouchHandlers();
+  ensureSwipeHistoryUI();
+  updatePrewarmAhead();
 }
 
 function exitSwipeMode() {
@@ -600,6 +855,9 @@ function exitSwipeMode() {
   swipeView.classList.add('hidden'); swipeView.setAttribute('aria-hidden', 'true');
   swipeContainer.innerHTML = '';
   if (swipeActions) swipeActions.innerHTML = '';
+  if (swipePreloadsEl) swipePreloadsEl.innerHTML = '';
+  swipePreloadMap = new Map();
+  if (swipeHistoryPanel) swipeHistoryPanel.classList.add('hidden');
   try { document.body.style.overflow = ''; } catch (e) { }
   // disable TikTok layout
   try { document.body.classList.remove('tiktok-mode'); const ln = qs('#leftNav'); if (ln) { ln.classList.add('hidden'); ln.setAttribute('aria-hidden', 'true'); } } catch (e) { }
@@ -620,51 +878,101 @@ function renderSwipeItem(index) {
   pauseAllVideos();
   swipeContainer.innerHTML = '';
   if (!p) { swipeContainer.innerHTML = '<div class="muted">No posts</div>'; return; }
-  const el = document.createElement('div'); el.className = 'swipe-item';
-  // Helper: build YouTube embed URL (supports watch?v=, youtu.be, and /shorts/ links)
-  const toYouTubeEmbed = (url) => {
-    if (!url) return null;
-    try {
-      const u = new URL(url);
-      let id = null;
-      if (u.hostname.includes('youtu.be')) id = u.pathname.slice(1);
-      else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/shorts/')[1];
-      else if (u.hostname.includes('youtube.com')) id = u.searchParams.get('v');
-      if (!id) return null;
-      // autoplay & mute for swipe; playsinline for mobile
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&controls=1&rel=0&modestbranding=1`;
-    } catch (e) { return null; }
-  };
+  recordSwipeHistory(p);
+  const el = document.createElement('div');
+  el.className = 'swipe-item';
 
-  const isYouTube = (u) => /(?:youtube.com\/watch\?v=|youtu.be\/|youtube.com\/shorts\/)/i.test(u || '');
+  const mediaWrap = document.createElement('div');
+  mediaWrap.className = 'swipe-media-wrap';
+  el.appendChild(mediaWrap);
+
+  const overlay = document.createElement('div');
+  overlay.className = 'swipe-gesture-overlay';
+  overlay.title = 'Swipe / scroll to change items';
+  mediaWrap.appendChild(overlay);
+
+  const isYouTube = (u) => /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(u || '');
+
+  let mediaEl = null;
 
   if (p.mediaType === 'video' || (p.mediaUrl && p.mediaUrl.match(/\.(mp4|webm|ogg)$/i))) {
-    const v = document.createElement('video'); v.src = p.mediaUrl; v.controls = true; v.muted = true; v.playsInline = true; v.autoplay = true; v.style.maxHeight = '100%'; el.appendChild(v);
+    const v = document.createElement('video');
+    v.src = p.mediaUrl;
+    v.controls = true;
+    v.muted = true;
+    v.playsInline = true;
+    v.autoplay = true;
+    v.preload = 'auto';
+    mediaEl = v;
+    mediaWrap.appendChild(v);
     // Try to play reliably: play on canplay and attempt a play() after short delay
     v.addEventListener('canplay', () => { v.play().catch(() => { }); });
     setTimeout(() => { try { v.play().catch(() => { }); } catch (e) { } }, 250);
+    // Tap/click overlay to toggle play/pause
+    overlay.addEventListener('click', () => {
+      try {
+        if (v.paused) v.play().catch(() => { });
+        else v.pause();
+      } catch (e) { }
+    });
   } else if (p.mediaUrl && isYouTube(p.mediaUrl)) {
-    // For YouTube links (including Shorts) embed an iframe with autoplay & muted params
-    const embed = toYouTubeEmbed(p.mediaUrl);
+    const embed = buildYouTubeEmbedUrl(p.mediaUrl, { autoplay: true });
     if (embed) {
       const iframe = document.createElement('iframe');
       iframe.src = embed;
-      iframe.width = '100%'; iframe.height = '100%'; iframe.style.height = '100%'; iframe.style.width = '100%';
       iframe.setAttribute('frameborder', '0');
       iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen');
       iframe.allowFullscreen = true;
-      el.appendChild(iframe);
+      // Key: keep iframe from swallowing swipe gestures; overlay captures interactions.
+      iframe.style.pointerEvents = 'none';
+      mediaEl = iframe;
+      mediaWrap.appendChild(iframe);
+
+      // Allow temporary interaction with YouTube controls when requested.
+      const interactBtn = document.createElement('button');
+      interactBtn.className = 'swipe-overlay-btn';
+      interactBtn.type = 'button';
+      interactBtn.textContent = 'Controls';
+      interactBtn.title = 'Temporarily interact with video controls';
+      interactBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        try {
+          overlay.style.pointerEvents = 'none';
+          iframe.style.pointerEvents = 'auto';
+          interactBtn.textContent = 'Controls (6s)';
+          setTimeout(() => {
+            try {
+              iframe.style.pointerEvents = 'none';
+              overlay.style.pointerEvents = '';
+              interactBtn.textContent = 'Controls';
+            } catch (e2) { }
+          }, 6000);
+        } catch (e2) { }
+      });
+      overlay.appendChild(interactBtn);
     } else {
-      const img = document.createElement('img'); img.src = p.thumbnail || p.mediaUrl; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+      const img = document.createElement('img');
+      img.src = p.thumbnail || p.mediaUrl;
+      img.alt = p.title || 'Recess post preview';
+      mediaEl = img;
+      mediaWrap.appendChild(img);
     }
   } else if (p.mediaUrl) {
-    const img = document.createElement('img'); img.src = p.thumbnail || p.mediaUrl; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+    const img = document.createElement('img');
+    img.src = p.thumbnail || p.mediaUrl;
+    img.alt = p.title || 'Recess post preview';
+    mediaEl = img;
+    mediaWrap.appendChild(img);
   } else {
-    const img = document.createElement('img'); img.src = p.thumbnail; img.alt = p.title || 'Recess post preview'; el.appendChild(img);
+    const img = document.createElement('img');
+    img.src = p.thumbnail;
+    img.alt = p.title || 'Recess post preview';
+    mediaEl = img;
+    mediaWrap.appendChild(img);
   }
-  const info = document.createElement('div'); info.style.marginTop = '8px'; info.style.textAlign = 'center'; info.innerHTML = `<h3 style="margin:6px 0">${p.title || 'Untitled'}</h3><div class="muted small">${p.description || ''}</div>`;
-  el.appendChild(info);
+
   swipeContainer.appendChild(el);
+
   // Render action buttons
   if (swipeActions) {
     swipeActions.innerHTML = '';
@@ -688,6 +996,7 @@ function renderSwipeItem(index) {
     swipeActions.appendChild(likeBtn); swipeActions.appendChild(reportBtn); swipeActions.appendChild(likeCount);
   }
   updateSwipePagination();
+  updatePrewarmAhead();
 }
 
 function swipeKeyHandler(e) {
@@ -697,19 +1006,29 @@ function swipeKeyHandler(e) {
 }
 
 async function swipeNext() {
-  if (swipeIndex < swipePosts.length - 1) { swipeIndex++; renderSwipeItem(swipeIndex); }
-  else if (swipePosts.length && swipePosts.length === swipeFeedLimit) {
-    swipeFeedPage++;
-    const data = await fetchFeedPage(swipeFeedPage);
-    if (data.posts && data.posts.length) {
-      swipePosts = swipePosts.concat(data.posts);
-      swipeIndex++;
-      renderSwipeItem(swipeIndex);
-    }
+  if (swipeIndex < swipePosts.length - 1) {
+    swipeIndex++;
+    renderSwipeItem(swipeIndex);
+    await ensureBufferAhead();
+    updatePrewarmAhead();
+    return;
+  }
+  // We're at the end of currently loaded items; fetch more and then advance if possible.
+  await ensureBufferAhead();
+  if (swipeIndex < swipePosts.length - 1) {
+    swipeIndex++;
+    renderSwipeItem(swipeIndex);
+    updatePrewarmAhead();
   }
 }
 
-function swipePrev() { if (swipeIndex > 0) { swipeIndex--; renderSwipeItem(swipeIndex); } }
+function swipePrev() {
+  if (swipeIndex > 0) {
+    swipeIndex--;
+    renderSwipeItem(swipeIndex);
+    updatePrewarmAhead();
+  }
+}
 
 // Touch handlers
 function initSwipeTouchHandlers() {

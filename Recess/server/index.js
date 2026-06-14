@@ -7,6 +7,36 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 
+function parseCookies(cookieHeader) {
+  const obj = {};
+  if (!cookieHeader) return obj;
+
+  cookieHeader.split(';').forEach((pair) => {
+    const idx = pair.indexOf('=');
+    if (idx < 0) return;
+    const key = pair.slice(0, idx).trim();
+    const val = pair.slice(idx + 1).trim();
+    obj[key] = decodeURIComponent(val);
+  });
+
+  return obj;
+}
+
+function getAuthHeader(req) {
+  return (req.headers['authorization'] || '').toString();
+}
+
+function getBearerToken(req) {
+  const auth = getAuthHeader(req);
+  if (!auth.toLowerCase().startsWith('bearer ')) return null;
+  return auth.slice(7).trim();
+}
+
+function isAuthenticated(req) {
+  const cookies = parseCookies(req.headers.cookie || '');
+  return !!(cookies.recess_parent_jwt || cookies.recess_admin_token || cookies.recess_user_jwt);
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -26,6 +56,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+function maybeUploadSingle(fieldName) {
+  return (req, res, next) => {
+    // Only invoke multer for multipart/form-data; allow JSON bodies for tests/API clients.
+    if (req.is('multipart/form-data')) return upload.single(fieldName)(req, res, next);
+    return next();
+  };
+}
+
 // sqlite3 setup
 const DB_PATH = path.join(DATA_DIR, 'db.sqlite');
 const db = new sqlite3.Database(DB_PATH);
@@ -39,6 +77,8 @@ try {
   console.warn('No config.json found or invalid, using default admin token.');
 }
 
+const JWT_SECRET = CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME';
+
 // simple admin middleware
 function requireAdmin(req, res, next) {
   let token = (req.headers['x-admin-token'] || req.headers['authorization'] || '').toString();
@@ -46,18 +86,19 @@ function requireAdmin(req, res, next) {
     const cookies = parseCookies(req.headers.cookie || '');
     if (cookies.recess_admin_token) token = cookies.recess_admin_token;
   }
-  if (!token || (token !== CONFIG.adminToken && token !== ('Bearer ' + CONFIG.adminToken))) return res.status(401).json({ error: 'admin token required' });
+  if (!token || (token !== CONFIG.adminToken && token !== ('Bearer ' + CONFIG.adminToken))) {
+    return res.status(401).json({ error: 'admin token required' });
+  }
   next();
 }
 
 // simple parent middleware (token maps to configured parent email)
 function requireParent(req, res, next) {
   // Accept Bearer JWT in Authorization or legacy x-parent-token
-  const auth = req.headers['authorization'] || '';
-  if (auth && auth.toString().startsWith('Bearer ')) {
-    const token = auth.toString().slice(7);
+  const bearer = getBearerToken(req);
+  if (bearer) {
     try {
-      const payload = jwt.verify(token, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      const payload = jwt.verify(bearer, JWT_SECRET);
       if (payload && payload.role === 'parent') {
         req.parentId = payload.id;
         req.parentEmail = payload.email;
@@ -72,7 +113,7 @@ function requireParent(req, res, next) {
   const cookies = parseCookies(req.headers.cookie || '');
   if (cookies.recess_parent_jwt) {
     try {
-      const payload = jwt.verify(cookies.recess_parent_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      const payload = jwt.verify(cookies.recess_parent_jwt, JWT_SECRET);
       if (payload && payload.role === 'parent') {
         req.parentId = payload.id;
         req.parentEmail = payload.email;
@@ -178,6 +219,20 @@ db.serialize(() => {
     }
   });
 
+  // Ensure parent@local has a passwordHash even if the DB existed before this column was added.
+  setTimeout(() => {
+    const parentPassword = CONFIG.parentPassword || 'parentpass';
+    const hash = bcrypt.hashSync(parentPassword, 10);
+    db.get("SELECT id, passwordHash FROM users WHERE email='parent@local' AND role='parent' LIMIT 1", [], (err, row) => {
+      if (err || !row) return;
+      if (row.passwordHash) return;
+      db.run('UPDATE users SET passwordHash = ? WHERE id = ?', [hash, row.id], (e) => {
+        if (e) console.error('Failed to set parent@local passwordHash:', e);
+        else console.log('Updated parent@local passwordHash');
+      });
+    });
+  }, 350);
+
   // Ensure a sample child exists
   db.get("SELECT id FROM users WHERE email='child@local' LIMIT 1", [], (err, crow) => {
     if (err) console.error('DB error checking child user:', err);
@@ -264,28 +319,6 @@ db.serialize(() => {
 // Serve uploads
 app.use('/uploads', express.static(UPLOADS_DIR));
 
-// Simple cookie parser for our needs (no extra dependency)
-function parseCookies(cookieHeader) {
-  const obj = {};
-  if (!cookieHeader) return obj;
-  cookieHeader.split(';').forEach(pair => {
-    const idx = pair.indexOf('=');
-    if (idx < 0) return;
-    const key = pair.slice(0, idx).trim();
-    const val = pair.slice(idx + 1).trim();
-    obj[key] = decodeURIComponent(val);
-  });
-  return obj;
-}
-
-function isAuthenticated(req) {
-  const cookies = parseCookies(req.headers.cookie || '');
-  if (cookies.recess_parent_jwt) return true;
-  if (cookies.recess_admin_token) return true;
-  if (cookies.recess_user_jwt) return true;
-  return false;
-}
-
 // Redirect unauthenticated visitors at root to landing page
 app.get('/', (req, res, next) => {
   try {
@@ -311,8 +344,8 @@ app.get('/api/posts', (req, res) => {
 
 // API: feed (paginated) - used by swipe/fullscreen pager
 app.get('/api/feed', (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page || '1'));
-  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '10')));
+  const page = Math.max(1, parseInt(req.query.page || '1', 10));
+  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '10', 10)));
   const offset = (page - 1) * limit;
   const sql = "SELECT * FROM posts WHERE status='approved' ORDER BY createdAt DESC LIMIT ? OFFSET ?";
   db.all(sql, [limit, offset], (err, rows) => {
@@ -326,22 +359,16 @@ app.get('/api/feed', (req, res) => {
   });
 });
 
-// API: paginated feed for swipe view (used by web/app.js)
-app.get('/api/feed', (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page || '1', 10));
-  const limit = Math.max(1, Math.min(50, parseInt(req.query.limit || '10', 10)));
-  const offset = (page - 1) * limit;
-  const sql = "SELECT * FROM posts WHERE status='approved' ORDER BY createdAt DESC LIMIT ? OFFSET ?";
-  db.all(sql, [limit, offset], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    const hasMore = (rows && rows.length === limit);
-    res.json({ posts: rows || [], hasMore });
-  });
-});
-
-// API: create post (multipart: media)
-app.post('/api/posts', upload.single('media'), (req, res) => {
-  const { title = '', description = '', category = '', tags = '', childEmail = '', mediaUrl: bodyMediaUrl = '' } = req.body;
+// API: create post (multipart OR JSON)
+app.post('/api/posts', maybeUploadSingle('media'), (req, res) => {
+  const {
+    title = '',
+    description = '',
+    category = '',
+    tags = '',
+    childEmail = '',
+    mediaUrl: bodyMediaUrl = ''
+  } = req.body;
   const file = req.file;
   let mediaUrl = bodyMediaUrl;
   let mediaType = null;
@@ -350,7 +377,7 @@ app.post('/api/posts', upload.single('media'), (req, res) => {
     mediaType = file.mimetype.startsWith('video') ? 'video' : 'image';
   } else if (bodyMediaUrl) {
     // detect YouTube links first, then common video extensions, otherwise treat as image
-    if (/(?:youtube.com\/watch\?v=|youtu.be\/)/i.test(bodyMediaUrl)) {
+    if (/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)/i.test(bodyMediaUrl)) {
       mediaType = 'youtube';
     } else if (bodyMediaUrl.match(/\.(mp4|webm|ogg)$/i)) {
       mediaType = 'video';
@@ -365,8 +392,19 @@ app.post('/api/posts', upload.single('media'), (req, res) => {
 
   // determine userId from childEmail if provided
   function insertWithUserId(userId) {
-    const stmt = db.prepare(`INSERT INTO posts (userId, title, description, mediaUrl, mediaType, category, tags, status, createdAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    const stmt = db.prepare(
+      `INSERT INTO posts (
+        userId,
+        title,
+        description,
+        mediaUrl,
+        mediaType,
+        category,
+        tags,
+        status,
+        createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
     // Default new posts require parent approval first
     stmt.run(userId || 0, title, description, mediaUrl, mediaType, category, tags, 'pending_parent', createdAt, function (err) {
       if (err) return res.status(500).json({ error: err.message });
@@ -453,11 +491,11 @@ app.post('/api/parents/me/posts/:id/approve', requireParent, (req, res) => {
   const parentId = req.parentId;
   const parentEmail = req.parentEmail;
   if (!parentId && !parentEmail) return res.status(401).json({ error: 'parent authentication required' });
-  const lookupParentId = (cb) => {
+  const resolveParentId = (cb) => {
     if (parentId) return cb(null, parentId);
     db.get('SELECT id FROM users WHERE email = ? LIMIT 1', [parentEmail], (err, row) => cb(err, row ? row.id : null));
   };
-  lookupParentId((err, pId) => {
+  resolveParentId((err, pId) => {
     if (err || !pId) return res.status(404).json({ error: 'parent not found' });
     db.get('SELECT * FROM posts WHERE id = ?', [postId], (e, post) => {
       if (e || !post) return res.status(404).json({ error: 'post not found' });
@@ -483,11 +521,11 @@ app.post('/api/parents/me/posts/:id/reject', requireParent, (req, res) => {
   const parentId = req.parentId;
   const parentEmail = req.parentEmail;
   if (!parentId && !parentEmail) return res.status(401).json({ error: 'parent authentication required' });
-  const lookupParentId = (cb) => {
+  const resolveParentId = (cb) => {
     if (parentId) return cb(null, parentId);
     db.get('SELECT id FROM users WHERE email = ? LIMIT 1', [parentEmail], (err, row) => cb(err, row ? row.id : null));
   };
-  lookupParentId((err, pId) => {
+  resolveParentId((err, pId) => {
     if (err || !pId) return res.status(404).json({ error: 'parent not found' });
     db.get('SELECT * FROM posts WHERE id = ?', [postId], (e, post) => {
       if (e || !post) return res.status(404).json({ error: 'post not found' });
@@ -588,7 +626,7 @@ app.post('/api/parents/login', (req, res) => {
     if (!hash) return res.status(500).json({ error: 'no password set for this user' });
     const ok = bcrypt.compareSync(password, hash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    const token = jwt.sign({ id: user.id, email: user.email, role: 'parent' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'parent' }, JWT_SECRET, { expiresIn: '8h' });
     // Set an HttpOnly cookie for server-side session detection (local dev only)
     try {
       res.cookie('recess_parent_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 });
@@ -615,7 +653,7 @@ app.post('/api/users/demo-login', (req, res) => {
       });
     }
     // Sign a JWT for the user
-    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET, { expiresIn: '8h' });
     try { res.cookie('recess_user_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }); } catch (e) {}
     // Return token as convenience (client still gets cookie)
     res.json({ token });
@@ -639,7 +677,7 @@ app.post('/api/users/login', (req, res) => {
     if (!hash) return res.status(401).json({ error: 'invalid credentials' });
     const ok = bcrypt.compareSync(password, hash);
     if (!ok) return res.status(401).json({ error: 'invalid credentials' });
-    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME', { expiresIn: '8h' });
+    const token = jwt.sign({ id: user.id, email: user.email, role: 'user' }, JWT_SECRET, { expiresIn: '8h' });
     try { res.cookie('recess_user_jwt', token, { httpOnly: true, maxAge: 8 * 60 * 60 * 1000 }); } catch (e) {}
     res.json({ token, id: user.id, email: user.email, displayName: user.displayName });
   });
@@ -655,14 +693,14 @@ app.get('/api/session', (req, res) => {
   // Check parent JWT cookie
   if (cookies.recess_parent_jwt) {
     try {
-      const payload = jwt.verify(cookies.recess_parent_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      const payload = jwt.verify(cookies.recess_parent_jwt, JWT_SECRET);
       return res.json({ role: 'parent', displayName: payload.email || payload.id });
     } catch (e) {}
   }
   // Check user JWT cookie
   if (cookies.recess_user_jwt) {
     try {
-      const payload = jwt.verify(cookies.recess_user_jwt, CONFIG.jwtSecret || 'recess-jwt-secret-CHANGE_ME');
+      const payload = jwt.verify(cookies.recess_user_jwt, JWT_SECRET);
       // fetch displayName from DB
       db.get('SELECT displayName,email FROM users WHERE id = ? LIMIT 1', [payload.id], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
